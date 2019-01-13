@@ -1,4 +1,4 @@
-# Kodi Addon for HotStar -- www.viu.com
+# Kodi Addon for VIU -- www.viu.com
 
 The add-on is optimized for Tamil -- https://www.viu.com/ott/in/en/tamil
 
