@@ -29,20 +29,60 @@ kodilogging.config(logger)
 
 class ViuPlugin(object):
     ITEMS_LIMIT = 25
-    HOME_CATEGORIES = (
-        ('7_0_2_6_2', 'Premium Korean Shows'),
-        ('playlist-25258826', 'Award-winning Films Bollywood Movies'),
-        ('playlist-25722267', 'Kadhal Sadugudu'),
-        ('playlist-25722268', 'Tentukottai'),
-        ('16_0_2_6_2', 'Just Added'),
-        ('15_0_2_6_2', 'You Might Also Like To Watch'),
-        ('playlist-25705800', 'Veralevel Short Films'),
-        ('9_0_2_6_2', 'Cricket Corner'),
-        ('17_0_2_6_2', 'Best Romantic K Dramas'),
-        ('20_0_2_6_2', 'Trending On Viu'),
-        ('22_0_2_6_2', 'Tamil Originals'),
-        ('0_0_2_6_2', 'Spotlight')
-    )
+    HOME_CATEGORIES = {
+        'Tamil': (
+            ('7_0_2_6_2', 'Premium Korean Shows'),
+            ('playlist-25258826', 'Award-winning Films Bollywood Movies'),
+            ('playlist-25722267', 'Kadhal Sadugudu'),
+            ('playlist-25722268', 'Tentukottai'),
+            ('16_0_2_6_2', 'Just Added'),
+            ('15_0_2_6_2', 'You Might Also Like To Watch'),
+            ('playlist-25705800', 'Veralevel Short Films'),
+            ('9_0_2_6_2', 'Cricket Corner'),
+            ('17_0_2_6_2', 'Best Romantic K Dramas'),
+            ('20_0_2_6_2', 'Trending On Viu'),
+            ('22_0_2_6_2', 'Tamil Originals'),
+            ('97_0_2_1_2', 'Telugu Originals'),
+            ('0_0_2_6_2', 'Spotlight')
+        ),
+        'Telugu': (
+            ('120_0_2_1_2', u'Just Added Shows'),
+            ('7_0_2_1_2', u'Spotlight'),
+            ('97_0_2_1_2', u'Telugu Originals'),
+            ('98_0_2_1_2', u'Popular TV Shows'),
+            ('69_0_2_1_2', u'Top Picks For You'),
+            ('playlist-23320605', u'Latest On Viu'),
+            ('127_0_2_1_2', u'Best Romantic K Dramas'),
+            ('123_0_2_1_2', u'Premium Korean Shows (Subtitles)'),
+            ('playlist-25719023', u'Critically Acclaimed Movies'),
+            ('playlist-24623179', u'Popular Movies For You'),
+            ('96_0_2_1_2', u'Hindi Originals'),
+            ('125_0_2_1_2', u'Tamil Originals'),
+            ('playlist-24919061', u"Family Drama's"),
+            ('playlist-24919065', u'Action & Adventures'),
+            ('playlist-25723660', u'Horror-Comedies'),
+            ('130_0_2_1_2', u'#Trending Music Videos')
+        ),
+        'Hindi': (
+            ('2_0_2_2', u'Spotlight'),
+            ('361_0_2_2', u'Just Added Shows'),
+            ('351_0_2_2', u'VIU Originals'),
+            ('362_0_2_2', u'Top Picks For You'),
+            ('374_0_2_2', u'Best Romantic K Dramas'),
+            ('372_0_2_2', u'Premium Korean Shows (Subtitles)'),
+            ('playlist-23789616', u'South Action Movies'),
+            ('playlist-22671542', u'Fresh On Viu'),
+            ('playlist-23670893', u'Popular Movies For You'),
+            ('364_0_2_2', u'Telugu VIU Originals'),
+            ('playlist-22147346', u'Bollywood Sequels'),
+            ('playlist-22253288', u'Dil Vil Pyaar Vyaar'),
+            ('playlist-22147314', u'Movies That Will Make You Scream'),
+            ('playlist-25258826', u'Award-winning Films'),
+            ('playlist-21989604', u'The Versatile Akshay'),
+            ('playlist-21992833', u'Salman Ka Swag'),
+            ('playlist-22272906', u'Laughter Riot')
+        )
+    }
 
     def __init__(self, plugin_args):
         # Get the plugin url in plugin:// notation.
@@ -177,17 +217,39 @@ class ViuPlugin(object):
         # Finish creating a virtual folder.
         xbmcplugin.endOfDirectory(self.handle)
 
-    def list_categories(self):
+    def list_categories(self, language):
         # Set plugin category. It is displayed in some skins as the name
         # of the current section.
         xbmcplugin.setPluginCategory(self.handle, 'Collections')
 
-        for category_id, title in ViuPlugin.HOME_CATEGORIES:
+        for category_id, title in ViuPlugin.HOME_CATEGORIES[language]:
             self.add_directory_item(
                 title=title,
                 content_id=category_id,
                 description=title,
                 action='container',
+                parent_title=language
+            )
+
+        self.add_search_item()
+
+        # Add a sort method for the virtual folder items (alphabetically, ignore articles)
+        xbmcplugin.addSortMethod(self.handle, xbmcplugin.SORT_METHOD_LABEL)
+
+        # Finish creating a virtual folder.
+        xbmcplugin.endOfDirectory(self.handle)
+
+    def list_languages(self):
+        # Set plugin category. It is displayed in some skins as the name
+        # of the current section.
+        xbmcplugin.setPluginCategory(self.handle, 'Languages')
+
+        for category_id in ViuPlugin.HOME_CATEGORIES.iterkeys():
+            self.add_directory_item(
+                title=category_id,
+                content_id=category_id,
+                description=category_id,
+                action='categories',
             )
 
         self.add_search_item()
@@ -224,7 +286,7 @@ class ViuPlugin(object):
         # of the current section.
         xbmcplugin.setPluginCategory(self.handle, 'Search/{}'.format(query))
 
-        url = 'https://www.viu.com/ott/web/api/search/extsearch?keyword={query}&contentCountry=IN&contentFlavour=tamil&regionid=tamil&languageid=en&ccode=IN&geo=2&ver=1.0&fmt=json&aver=5.0&appver=2.0&appid=viu_desktop&platform=desktop'.format(
+        url = 'https://www.viu.com/ott/web/api/search/extsearch?keyword={query}&contentCountry=IN&languageid=en&ccode=IN&geo=2&ver=1.0&fmt=json&aver=5.0&appver=2.0&appid=viu_desktop&platform=desktop'.format(
             query=quote(query),
         )
         data = self.make_request(url)
@@ -657,7 +719,10 @@ class ViuPlugin(object):
             title = self.params.get('title')
             start_offset = self.params.get('start_offset', 0)
 
-            if action == 'container':
+            if action == 'categories':
+                self.list_categories(content_id)
+
+            elif action == 'container':
                 self.list_container(content_id, start_offset, title)
 
             elif action == 'play':
@@ -679,7 +744,7 @@ class ViuPlugin(object):
 
         else:
             # List all the channels at the base level.
-            self.list_categories()
+            self.list_languages()
 
 
 def run():
