@@ -3,26 +3,25 @@
     <requires>
         <import addon="xbmc.python" version="2.25.0"/>
         <import addon="script.module.routing" version="0.2.0"/>
+        <import addon="script.module.requests" version="2.7.0"/>
 
     </requires>
     <extension point="xbmc.python.pluginsource" library="main.py">
         <provides>video</provides>
     </extension>
     <extension point="xbmc.addon.metadata">
-        <summary lang="en_GB">Vuclip, a PCCW Media Company is a leading video-on-demand service provider across the globe with presence in more than 22 countries. We are born from innovative technology and making our journey to become the most admired and innovative MediaTech Company.</summary>
-        <description lang="en_GB"></description>
+        <summary lang="en_GB">Watch Malay, Korean, Tamil, Bollywood, Thai, Japanese, Chinese, Indonesian, and other Asian Movies and TV shows online for free with subtitles in English and Malay on VIU</summary>
+        <description lang="en_GB">Watch Malay, Korean, Tamil, Bollywood, Thai, Japanese, Chinese, Indonesian, and other Asian Movies and TV shows online for free with subtitles in English and Malay on VIU</description>
         <language></language>
         <platform>all</platform>
         <license>GPL-3.0</license>
         <forum></forum>
-        <website>www.viu.com</website>
-        <email>youngkbell@gmail.com</email>
         <source></source>
         <news></news>
         <disclaimer></disclaimer>
         <assets>
-            <icon>resources/icon.png</icon>
-            <fanart>resources/fanart.jpg</fanart>
+            <icon>resources/icon_viu.png</icon>
+            <fanart>resources/fanart_viu.jpg</fanart>
         </assets>
     </extension>
 </addon>
