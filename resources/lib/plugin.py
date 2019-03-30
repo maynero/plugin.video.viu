@@ -19,18 +19,21 @@ import xbmcplugin
 import xbmc
 
 import requests
-
+import collections
 import time
 
 ADD_ON = xbmcaddon.Addon()
 logger = logging.getLogger(ADD_ON.getAddonInfo('id'))
 kodilogging.config(logger)
 
+_category_t = collections.namedtuple('Category', ['id', 'title', 'item'])
+
 
 class ViuPlugin(object):
+
     ITEMS_LIMIT = 25
     HOME_CATEGORIES = {
-        'Tamil': (
+        'Tamil': map(lambda x: _category_t(x[0], x[1], None), (
             ('7_0_2_6_2', 'Premium Korean Shows'),
             ('playlist-25258826', 'Award-winning Films Bollywood Movies'),
             ('playlist-25722267', 'Kadhal Sadugudu'),
@@ -44,8 +47,8 @@ class ViuPlugin(object):
             ('22_0_2_6_2', 'Tamil Originals'),
             ('97_0_2_1_2', 'Telugu Originals'),
             ('0_0_2_6_2', 'Spotlight')
-        ),
-        'Telugu': (
+        )),
+        'Telugu': map(lambda x: _category_t(x[0], x[1], None), (
             ('120_0_2_1_2', u'Just Added Shows'),
             ('7_0_2_1_2', u'Spotlight'),
             ('97_0_2_1_2', u'Telugu Originals'),
@@ -62,8 +65,8 @@ class ViuPlugin(object):
             ('playlist-24919065', u'Action & Adventures'),
             ('playlist-25723660', u'Horror-Comedies'),
             ('130_0_2_1_2', u'#Trending Music Videos')
-        ),
-        'Hindi': (
+        )),
+        'Hindi': map(lambda x: _category_t(x[0], x[1], None), (
             ('2_0_2_2', u'Spotlight'),
             ('361_0_2_2', u'Just Added Shows'),
             ('351_0_2_2', u'VIU Originals'),
@@ -81,7 +84,7 @@ class ViuPlugin(object):
             ('playlist-21989604', u'The Versatile Akshay'),
             ('playlist-21992833', u'Salman Ka Swag'),
             ('playlist-22272906', u'Laughter Riot')
-        )
+        ))
     }
 
     def __init__(self, plugin_args):
@@ -208,7 +211,10 @@ class ViuPlugin(object):
                 )
 
         self.add_next_page_and_search_item(
-            item=data, start_offset=start_offset, original_title=container_name, action='container'
+            item=data['response']['container'],
+            start_offset=int(start_offset),
+            original_title=container_name,
+            action='container'
         )
 
         # Add a sort method for the virtual folder items (alphabetically, ignore articles)
@@ -222,13 +228,27 @@ class ViuPlugin(object):
         # of the current section.
         xbmcplugin.setPluginCategory(self.handle, 'Collections')
 
-        for category_id, title in ViuPlugin.HOME_CATEGORIES[language]:
+        url = 'https://www.viu.com/ott/web/api/v3/workflow/programming?ver=1.0&fmt=json&aver=5.0&appver=2.0&appid=viu_desktop&platform=web&configVersion=1.0&languageId=en&contentFlavour={}&countryCode=in'.format(
+            language.lower()
+        )
+        data = self.make_request(url)
+        if data:
+            data = self.make_request(data['categoryJson'] + 'en/home.json')
+            categories = map(
+                lambda item: _category_t(item['id'], item['title'], item['item'][0] if item.get('item') else None),
+                data['container']
+            )
+        else:
+            categories = ViuPlugin.HOME_CATEGORIES[language]
+
+        for category in categories:
             self.add_directory_item(
-                title=title,
-                content_id=category_id,
-                description=title,
+                title=category.title,
+                content_id=category.id,
+                description=category.title,
                 action='container',
-                parent_title=language
+                parent_title=language,
+                item=category.item,
             )
 
         self.add_search_item()
