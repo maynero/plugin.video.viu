@@ -113,6 +113,9 @@ class ViuPlugin(object):
             "Accept-Language": "en-US,en;q=0.9",
             "Accept": "application/json, text/plain, */*",
             "Accept-Language": "en-US,en;q=0.9",
+            "x-client-auth": "b6fea2dd3d110b12fbd23d7ab8cd0ba3",
+            "x-session-id": str(uuid.uuid4()),
+            "x-request-id": str(uuid.uuid4()),
         }
         if hasattr(self, 'token'):
             headers["Authorization"] = self.token
