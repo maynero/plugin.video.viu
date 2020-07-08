@@ -299,7 +299,7 @@ class ViuPlugin(object):
         xbmcplugin.setPluginCategory(self.handle, 'Regions')
 
         # languages = ViuPlugin.HOME_CATEGORIES.iterkeys()
-        languages = ['Indian', 'Arab']
+        languages = ['Indian', 'Arab', 'Pinoy']
         for category_id in languages:
             self.add_directory_item(
                 title=category_id,
