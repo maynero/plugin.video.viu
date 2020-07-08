@@ -133,6 +133,7 @@ class ViuPlugin(object):
         data = self.make_post_request(
             'https://www.viu.com/ott/web/api/v3/workflow/web/auth?&fmt=json', post_body
         )
+        logger.info("Got token from the server -- {}".format(data))
         return 'Bearer {}'.format(data['user']['jwtToken'])
 
     def list_container(self, container_id, start_offset, container_name):
@@ -226,23 +227,16 @@ class ViuPlugin(object):
         # Finish creating a virtual folder.
         xbmcplugin.endOfDirectory(self.handle)
 
-    def list_categories(self, language):
+    def list_collections(self, category_id, category_url):
         # Set plugin category. It is displayed in some skins as the name
         # of the current section.
         xbmcplugin.setPluginCategory(self.handle, 'Collections')
 
-        url = 'https://www.viu.com/ott/web/api/v3/workflow/programming?ver=1.0&fmt=json&aver=5.0&appver=2.0&appid=viu_desktop&platform=web&configVersion=1.0&languageId=en&contentFlavour={}&countryCode=in'.format(
-            language.lower()
+        data = self.make_request('{}en/{}.json'.format(category_url, category_id))
+        categories = map(
+            lambda item: _category_t(item['id'], item['title'], item['item'][0] if item.get('item') else None),
+            data['container'] if isinstance(data['container'], list) else [data['container']]
         )
-        data = self.make_request(url)
-        if data:
-            data = self.make_request(data['categoryJson'] + 'en/home.json')
-            categories = map(
-                lambda item: _category_t(item['id'], item['title'], item['item'][0] if item.get('item') else None),
-                data['container']
-            )
-        else:
-            categories = ViuPlugin.HOME_CATEGORIES[language]
 
         for category in categories:
             self.add_directory_item(
@@ -250,7 +244,7 @@ class ViuPlugin(object):
                 content_id=category.id,
                 description=category.title,
                 action='container',
-                parent_title=language,
+                parent_title=category_id,
                 item=category.item,
             )
 
@@ -262,12 +256,51 @@ class ViuPlugin(object):
         # Finish creating a virtual folder.
         xbmcplugin.endOfDirectory(self.handle)
 
-    def list_languages(self):
+    def list_categories(self, region):
         # Set plugin category. It is displayed in some skins as the name
         # of the current section.
-        xbmcplugin.setPluginCategory(self.handle, 'Languages')
+        xbmcplugin.setPluginCategory(self.handle, 'Categories')
 
-        for category_id in ViuPlugin.HOME_CATEGORIES.iterkeys():
+        url = 'https://watch.viu.com/ott/web/api/v3/workflow/programming?ver=1.0&fmt=json&aver=5.0&appver=2.0&appid=viu_desktop&platform=web&configVersion=1.0&languageId=en&contentFlavour={}&countryCode=sa'.format(
+            region.lower()
+        )
+        data = self.make_request(url)
+        logger.info("Config json -- {}".format(data))
+        category_url = data['categoryJson']
+
+        data = self.make_request('{}en/categories.json'.format(category_url))
+        categories = map(
+            lambda item: _category_t(item['id'], item['title'], item['item'][0] if item.get('item') else None),
+            data['categories']
+        )
+
+        for category in categories:
+            self.add_directory_item(
+                title=category.title,
+                content_id=category.id,
+                description=category.title,
+                action='collections',
+                parent_title=region,
+                item=category.item,
+                url_params=dict(category_url=category_url)
+            )
+
+        self.add_search_item()
+
+        # Add a sort method for the virtual folder items (alphabetically, ignore articles)
+        xbmcplugin.addSortMethod(self.handle, xbmcplugin.SORT_METHOD_LABEL)
+
+        # Finish creating a virtual folder.
+        xbmcplugin.endOfDirectory(self.handle)
+
+    def list_regions(self):
+        # Set plugin category. It is displayed in some skins as the name
+        # of the current section.
+        xbmcplugin.setPluginCategory(self.handle, 'Regions')
+
+        # languages = ViuPlugin.HOME_CATEGORIES.iterkeys()
+        languages = ['Indian', 'Arab']
+        for category_id in languages:
             self.add_directory_item(
                 title=category_id,
                 content_id=category_id,
@@ -575,13 +608,14 @@ class ViuPlugin(object):
         xbmcplugin.addDirectoryItem(self.handle, url, list_item, is_folder)
 
     def add_directory_item(
-        self,
-        title,
-        description,
-        content_id,
-        action,
-        parent_title='',
-        item=None,
+            self,
+            title,
+            description,
+            content_id,
+            action,
+            parent_title='',
+            item=None,
+            url_params={},
     ):
         # {
         #     "tcid_16x9": 1164839631,
@@ -646,6 +680,7 @@ class ViuPlugin(object):
             action=action,
             content_id=content_id,
             title=u'{}/{}'.format(parent_title, title) if parent_title else title,
+            **url_params
         )
 
         # is_folder = True means that this item opens a sub-list of lower level items.
@@ -745,6 +780,9 @@ class ViuPlugin(object):
             if action == 'categories':
                 self.list_categories(content_id)
 
+            elif action == 'collections':
+                self.list_collections(content_id, self.params['category_url'])
+
             elif action == 'container':
                 self.list_container(content_id, start_offset, title)
 
@@ -767,7 +805,7 @@ class ViuPlugin(object):
 
         else:
             # List all the channels at the base level.
-            self.list_languages()
+            self.list_regions()
 
 
 def run():
