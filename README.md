@@ -5,8 +5,8 @@ Base on Viu Addon by Young K Bell: https://github.com/mani-coder/plugin.video.yo
 This plugin is not affiliated nor supported by Viu.
 
 ## Limitations: 
- - Premium login is not supported (yet).
  - Limited artwork
+ - Login is unsuppored (yet). This means no free or premium login.
 
 ## Note: 
  - The addon is only tested with Kodi 19.0.
