@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import xbmc
 import xbmcaddon
 import xbmcgui
@@ -7,18 +6,19 @@ import xbmcvfs
 import logging
 import json as json
 import os
-import uuid
-from urllib2 import urlopen
+from urllib.request import urlopen
 
 # read settings
 ADD_ON = xbmcaddon.Addon()
-PROFILE = unicode(xbmc.translatePath(ADD_ON.getAddonInfo('profile')), 'utf-8')
-TEMP = unicode(xbmc.translatePath(os.path.join(PROFILE, 'temp', '')), 'utf-8')
+PROFILE = xbmcvfs.translatePath(ADD_ON.getAddonInfo("profile"))
+TEMP = xbmcvfs.translatePath(os.path.join(PROFILE, "temp", ""))
 
 logger = logging.getLogger(__name__)
 
 
-def notification(header, message, time=5000, icon=ADD_ON.getAddonInfo('icon'), sound=True):
+def notification(
+    header, message, time=5000, icon=ADD_ON.getAddonInfo("icon"), sound=True
+):
     xbmcgui.Dialog().notification(header, message, icon, time, sound)
 
 
@@ -27,7 +27,7 @@ def show_settings():
 
 
 def get_setting(setting):
-    return ADD_ON.getSetting(setting).strip().decode('utf-8')
+    return ADD_ON.getSetting(setting).strip()
 
 
 def set_setting(setting, value):
@@ -53,7 +53,7 @@ def get_setting_as_int(setting):
 
 
 def get_string(string_id):
-    return ADD_ON.getLocalizedString(string_id).encode('utf-8', 'ignore')
+    return ADD_ON.getLocalizedString(string_id).encode("utf-8", "ignore")
 
 
 def kodi_json_request(params):
@@ -63,21 +63,20 @@ def kodi_json_request(params):
     try:
         response = json.loads(request)
     except UnicodeDecodeError:
-        response = json.loads(request.decode('utf-8', 'ignore'))
+        response = json.loads(request.decode("utf-8", "ignore"))
 
     try:
-        if 'result' in response:
-            return response['result']
+        if "result" in response:
+            return response["result"]
         return None
     except KeyError:
-        logger.warn("[%s] %s" %
-                    (params['method'], response['error']['message']))
+        logger.warn("[%s] %s" % (params["method"], response["error"]["message"]))
         return None
 
 
 def rmtree(path):
     if isinstance(path, unicode):
-        path = path.encode('utf-8')
+        path = path.encode("utf-8")
 
     dirs, files = xbmcvfs.listdir(path)
     for _dir in dirs:

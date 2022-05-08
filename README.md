@@ -1,10 +1,15 @@
-# Kodi Addon for VIU -- www.viu.com
+# Viu Kodi Addon
+Base on Viu Addon by Young K Bell: https://github.com/mani-coder/plugin.video.youngkbell.viu
 
-The add-on is optimized for Tamil -- https://www.viu.com/ott/in/en/tamil
+## Disclaimer
+This plugin is not affiliated nor supported by Viu.
 
-The latest installable .zip can be downloaded from [here](https://github.com/mani-coder/plugin.video.youngkbell.viu/blob/master/plugin.video.youngkbell.viu.zip). If you are using Github Browser add-on you can
-search for this user and install the add-on and also can enable the update service for auto-updates. 
+## LIMITATIONS: 
+ - Premium login is not supported (yet).
+ - Limited artwork
 
-**Warning**: The "add-on" is only compatible with Kodi 17.0 (Krypton) and above.
+## NOTE: 
+ - The addon is only tested with Kodi 19.0.
+ - Only tested on PH site of Viu, but might work with others.
 
 License: [GPL v.3](http://www.gnu.org/copyleft/gpl.html)
