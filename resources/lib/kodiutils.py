@@ -1,37 +1,27 @@
 # -*- coding: utf-8 -*-
 import xbmc
-import xbmcaddon
 import xbmcgui
 import xbmcvfs
-import logging
 import json as json
 import os
-from urllib.request import urlopen
-
-# read settings
-ADD_ON = xbmcaddon.Addon()
-PROFILE = xbmcvfs.translatePath(ADD_ON.getAddonInfo("profile"))
-TEMP = xbmcvfs.translatePath(os.path.join(PROFILE, "temp", ""))
-
-logger = logging.getLogger(__name__)
-
+from resources.lib.common import ADDON
 
 def notification(
-    header, message, time=5000, icon=ADD_ON.getAddonInfo("icon"), sound=True
+    header, message, time=5000, icon=ADDON.getAddonInfo("icon"), sound=True
 ):
     xbmcgui.Dialog().notification(header, message, icon, time, sound)
 
 
 def show_settings():
-    ADD_ON.openSettings()
+    ADDON.openSettings()
 
 
 def get_setting(setting):
-    return ADD_ON.getSetting(setting).strip()
+    return ADDON.getSetting(setting).strip()
 
 
 def set_setting(setting, value):
-    ADD_ON.setSetting(setting, str(value))
+    ADDON.setSetting(setting, str(value))
 
 
 def get_setting_as_bool(setting):
@@ -47,13 +37,13 @@ def get_setting_as_float(setting):
 
 def get_setting_as_int(setting):
     try:
-        return int(get_setting_as_float(setting))
+        return int(get_setting(setting))
     except ValueError:
         return 0
 
 
 def get_string(string_id):
-    return ADD_ON.getLocalizedString(string_id).encode("utf-8", "ignore")
+    return ADDON.getLocalizedString(string_id).encode("utf-8", "ignore")
 
 
 def kodi_json_request(params):
@@ -70,7 +60,7 @@ def kodi_json_request(params):
             return response["result"]
         return None
     except KeyError:
-        logger.warn("[%s] %s" % (params["method"], response["error"]["message"]))
+        LOG.warn("[%s] %s" % (params["method"], response["error"]["message"]))
         return None
 
 
@@ -86,24 +76,47 @@ def rmtree(path):
     xbmcvfs.rmdir(path)
 
 
-def cleanup_temp_dir():
-    try:
-        rmtree(TEMP)
-    except:
-        pass
+# Up Next
+def upnext_signal(sender, next_info):
+    """Send a signal to Kodi using JSON RPC"""
+    from base64 import b64encode
+    from json import dumps
 
-    xbmcvfs.mkdirs(TEMP)
+    data = [to_unicode(b64encode(dumps(next_info).encode()))]
+    notify(sender=sender + ".SIGNAL", message="upnext_data", data=data)
 
 
-def download_url_content_to_temp(url, filename):
-    """
-    Write the URL contents to a temp file.
-    """
-    temp_file = os.path.join(TEMP, filename)
-    logger.info("Downloading URL {} to {}".format(url, temp_file))
+def notify(sender, message, data):
+    """Send a notification to Kodi using JSON RPC"""
+    result = jsonrpc(
+        method="JSONRPC.NotifyAll",
+        params=dict(
+            sender=sender,
+            message=message,
+            data=data,
+        ),
+    )
+    if result.get("result") != "OK":
+        xbmc.log(
+            "Failed to send notification: " + result.get("error").get("message"), 4
+        )
+        return False
+    return True
 
-    local_file_handle = xbmcvfs.File(temp_file, "wb")
-    local_file_handle.write(urlopen(url).read())
-    local_file_handle.close()
 
-    return temp_file
+def jsonrpc(**kwargs):
+    """Perform JSONRPC calls"""
+    from json import dumps, loads
+
+    if kwargs.get("id") is None:
+        kwargs.update(id=0)
+    if kwargs.get("jsonrpc") is None:
+        kwargs.update(jsonrpc="2.0")
+    return loads(xbmc.executeJSONRPC(dumps(kwargs)))
+
+
+def to_unicode(text, encoding="utf-8", errors="strict"):
+    """Force text to unicode"""
+    if isinstance(text, bytes):
+        return text.decode(encoding, errors=errors)
+    return text

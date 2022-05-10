@@ -34,11 +34,15 @@ msgid "General"
 msgstr ""
 
 msgctxt "#30002"
-msgid "Enable debug logs?"
+msgid "Enable debugging"
 msgstr ""
 
 msgctxt "#30003"
-msgid "Enable Up Next integration?"
+msgid "Enable Up Next integration"
+msgstr ""
+
+msgctxt "#30004"
+msgid "Item limit"
 msgstr ""
 
 # 30021 - 30040 are for Stream settings
@@ -52,4 +56,58 @@ msgstr ""
 
 msgctxt "#30023"
 msgid "Subtitle language"
+msgstr ""
+
+# 30041 - 30060 are for Account settings
+msgctxt "#30041"
+msgid "Account"
+msgstr ""
+
+msgctxt "#30042"
+msgid "Enable account login"
+msgstr ""
+
+msgctxt "#30043"
+msgid "Username"
+msgstr ""
+
+msgctxt "#30044"
+msgid "Password"
+msgstr ""
+
+# 
+msgctxt "#30022"
+msgid "Set resolution"
+msgstr ""
+
+msgctxt "#30023"
+msgid "Subtitle language"
+msgstr ""
+
+msgctxt "#33000"
+msgid "No Search Results"
+msgstr ""
+
+msgctxt "#33001"
+msgid "No item found for {}"
+msgstr ""
+
+msgctxt "#33100"
+msgid "Categories"
+msgstr ""
+
+msgctxt "#33101"
+msgid "Recommendations"
+msgstr ""
+
+msgctxt "#33102"
+msgid "Search"
+msgstr ""
+
+msgctxt "#33103"
+msgid "Unavailable"
+msgstr ""
+
+msgctxt "#33104"
+msgid "This video is unavailable in your current account level"
 msgstr ""
