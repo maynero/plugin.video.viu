@@ -19,6 +19,9 @@
         <forum></forum>
         <source>https://github.com/maynero/plugin.video.viu</source>
         <news>
+v0.0.3+matrix.1 (2022-05-13)
+- Add undefined preferred_subtitle variable
+
 v0.0.2+matrix.1 (2022-05-13)
 - Add support for account login
 - Add support for Up Next
