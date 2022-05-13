@@ -7,7 +7,7 @@ def is_debug():
     return get_setting_as_bool("debug")
 
 
-def is_upnext_on():
+def is_upnext_enabled():
     return get_setting_as_bool("upnext")
 
 
@@ -25,6 +25,9 @@ def get_subtitle_lang():
 
 
 # Account settings
+def is_account_login_enabled():
+    return get_setting_as_bool("accountlogin")
+
 def get_username():
     return get_setting("username")
 

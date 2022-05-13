@@ -47,7 +47,12 @@
                         <options>
                             <option label="English">en</option>
                             <option label="Indo">id</option>
-                            <option label="Chinese">zh-Hant</option>
+                            <option label="Traditional Chinese">zh-Hant</option>
+                            <option label="Simplified Chinese">zh</option>
+                            <option label="Chinese">zh</option>
+                            <option label="Thai">th</option>
+                            <option label="Burmese">my</option>
+                            <option label="Malay">ms</option>
                         </options>
                         <allowempty>false</allowempty>
                     </constraints>
@@ -65,7 +70,7 @@
                 <setting id="username" type="string" label="30043" help="">
                     <level>0</level>
                     <constraints>
-                        <allowempty>fallse</allowempty>
+                        <allowempty>true</allowempty>
                     </constraints>
                     <control type="edit" format="string">
                         <heading>30043</heading>
@@ -77,7 +82,7 @@
                 <setting id="password" type="string" label="30044" help="">
                     <level>0</level>
                     <constraints>
-                        <allowempty>fallse</allowempty>
+                        <allowempty>true</allowempty>
                     </constraints>
                     <control type="edit" format="string">
                         <heading>30043</heading>

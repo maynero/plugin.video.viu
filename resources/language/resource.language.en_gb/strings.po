@@ -81,7 +81,7 @@ msgid "Set resolution"
 msgstr ""
 
 msgctxt "#30023"
-msgid "Subtitle language"
+msgid "Preferred subtitle language"
 msgstr ""
 
 msgctxt "#33000"

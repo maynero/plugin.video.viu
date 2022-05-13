@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
-from math import prod
+from resources.lib.player import ViuPlayer
 import xbmc
 import xbmcgui
 import xbmcplugin
 import sys
 import requests
+import logging
 
 from resources.lib.common import *
-from resources.lib.kodilogging import LOG
 from resources.lib import model, kodiutils, settings
 from urllib.parse import urlencode
 from urllib.parse import parse_qsl
 from bs4 import BeautifulSoup
-from resources.lib.player import ViuPlayer
+
+LOG = logging.getLogger(__name__)
 
 
 class ViuPlugin(object):
@@ -58,6 +59,19 @@ class ViuPlugin(object):
                 else:
                     return stream[url_key][list(stream[url_key].keys())[-1]]
 
+    @staticmethod
+    def get_next_episode(cur_ep_num, series):
+        # Viu episode numbering is just sequential numbers, adding one to the current number should provide accurate next episode
+        next_ep_num = cur_ep_num + 1
+
+        return next(
+            filter(
+                lambda product: (int(product.get("number")) == next_ep_num),
+                series["product"],
+            ),
+            None,
+        )
+
     def __init__(self, plugin_args):
         # Get the plugin url in plugin:// notation.
         self.plugin_url = plugin_args[0]
@@ -78,18 +92,26 @@ class ViuPlugin(object):
         self.token = (
             self.params["token"] if "token" in self.params else self._get_token()
         )
+        self.site_setting = (
+            self.params["site_setting"]
+            if "site_setting" in self.params
+            else self._get_site_setting()
+        )
         self.user_status = (
             self.params["user_status"]
             if "user_status" in self.params
             else self._get_user_status()
         )
-        self._set_setting()
 
-    def _set_setting(self):
+    def _get_site_setting(self):
         data = self.make_get_request(VIU_SETTING_URL)
         area = data["server"]["area"]
-        self.area_id = area.get("area_id", 5)
-        self.language_flag_id = area["language"][0]["language_flag_id"]
+
+        site_setting = model.SiteSetting(
+            area_id=area.get("area_id", 5),
+            language_flag_id=area["language"][0]["language_flag_id"],
+        )
+        return site_setting
 
     def _get_headers(self):
         headers = {
@@ -99,6 +121,7 @@ class ViuPlugin(object):
             "Accept-Encoding": "gzip, deflate, br",
             "Accept-Language": "en-US,en;q=0.9",
             "Accept": "application/json, text/plain, */*",
+            "Content-Type": "application/json",
         }
         if hasattr(self, "token"):
             headers["Authorization"] = self.token
@@ -107,23 +130,40 @@ class ViuPlugin(object):
 
     def _get_region(self):
         data = self.make_get_request("http://ip-api.com/json")
-        LOG.info(data)
+        LOG.info(f"_get_region: {data}")
         return data.get("countryCode", "ph").lower()
 
     def _get_token(self):
         self.session.get(f"https://www.viu.com/ott/{self.region}")
-        LOG.info(self.session.cookies)
-        return "Bearer {}".format(self.session.cookies.get("token"))
+        LOG.info(f"_get_token: {self.session.cookies}")
+        return f"Bearer {self.session.cookies.get('token')}"
 
     def _get_user_status(self):
+        if (
+            settings.is_account_login_enabled()
+            and settings.get_username() is not None
+            and settings.get_password() is not None
+        ):
+            body = {
+                "email": settings.get_username(),
+                "password": settings.get_password(),
+                "provider": "email",
+            }
+            data = self.make_post_request(url=VIU_LOGIN_URL, body=body)
+            LOG.info(f"_get_user_status, auth: {data}")
+
+            if data["status"] == 0:
+                error_message = data["error"]["message"]
+                LOG.info(f"_get_user_status: {error_message}")
+                kodiutils.notification("Unable to login", message=error_message)
+            else:
+                self.token = f"Bearer {data['token']}"
+
         data = self.make_get_request(VIU_USER_STATUS_URL)
-        LOG.info(data)
+        LOG.info(f"_get_user_status: {data}")
         user = data["user"]
         user_status = model.UserStatus(
-            user["userId"],
-            user["username"],
-            user["userLevel"],
-            data["plan"]["privileges"],
+            user["userId"], user["username"], user["userLevel"]
         )
         return user_status
 
@@ -133,8 +173,8 @@ class ViuPlugin(object):
         data = self.make_get_request(
             VIU_COLLECTION_URL.format(
                 self.region,
-                self.area_id,
-                self.language_flag_id,
+                self.site_setting.area_id,
+                self.site_setting.language_flag_id,
                 container_id,
                 settings.get_item_limit(),
                 start_offset,
@@ -172,6 +212,8 @@ class ViuPlugin(object):
             action="collections",
         )
 
+        # Add Search item at the very top of the list
+        self.add_search_item()
         xbmcplugin.addSortMethod(self.handle, xbmcplugin.SORT_METHOD_LABEL)
         xbmcplugin.endOfDirectory(self.handle)
 
@@ -181,7 +223,10 @@ class ViuPlugin(object):
 
         data = self.make_get_request(
             VIU_PRODUCT_URL.format(
-                self.region, self.area_id, self.language_flag_id, category_id
+                self.region,
+                self.site_setting.area_id,
+                self.site_setting.language_flag_id,
+                category_id,
             )
         )
 
@@ -218,14 +263,7 @@ class ViuPlugin(object):
         )
 
         # Add Search item at the very top of the list
-        self.add_directory_item(
-            title=f"[{ADDON.getLocalizedString(33102)}]",
-            content_id=1,
-            description=ADDON.getLocalizedString(33102),
-            action="search",
-            position="top",
-        )
-
+        self.add_search_item()
         xbmcplugin.addSortMethod(self.handle, xbmcplugin.SORT_METHOD_LABEL)
         xbmcplugin.endOfDirectory(self.handle)
 
@@ -241,11 +279,15 @@ class ViuPlugin(object):
 
         body = {
             "keyword": [query],
-            "url": VIU_SEARCH_API_URL.format(self.language_flag_id),
+            "url": VIU_SEARCH_API_URL.format(self.site_setting.language_flag_id),
         }
 
         data = self.make_post_request(
-            VIU_SEARCH_URL.format(self.region, self.area_id, self.language_flag_id),
+            VIU_SEARCH_URL.format(
+                self.region,
+                self.site_setting.area_id,
+                self.site_setting.language_flag_id,
+            ),
             body=body,
         )
 
@@ -289,10 +331,12 @@ class ViuPlugin(object):
         xbmcplugin.setPluginCategory(self.handle, ADDON.getLocalizedString(33101))
 
         data = self.make_get_request(
-            VIU_RECOMMENDATION_URL.format(self.area_id, self.language_flag_id)
+            VIU_RECOMMENDATION_URL.format(
+                self.site_setting.area_id, self.site_setting.language_flag_id
+            )
         )
         for grid in data["data"]["grid"]:
-            LOG.info(grid)
+            LOG.info(f"viu homepage grid: {grid}")
             if grid is not None and grid["product"] is not None:
                 self.add_directory_item(
                     title=grid["name"] or grid["description"],
@@ -301,51 +345,46 @@ class ViuPlugin(object):
                     action="recommended_collection",
                 )
 
-        xbmcplugin.addSortMethod(self.handle, xbmcplugin.SORT_METHOD_NONE)
+        # Add Search item at the very top of the list
+        self.add_search_item()
+        xbmcplugin.addSortMethod(self.handle, xbmcplugin.SORT_METHOD_LABEL)
         xbmcplugin.endOfDirectory(self.handle)
 
     def list_recommended_collections(self, content_id, title):
         xbmcplugin.setPluginCategory(self.handle, title)
 
         data = self.make_get_request(
-            VIU_RECOMMENDATION_URL.format(self.area_id, self.language_flag_id)
+            VIU_RECOMMENDATION_URL.format(
+                self.site_setting.area_id, self.site_setting.language_flag_id
+            )
         )
         for grid in data["data"]["grid"]:
             if grid is not None and grid.get("grid_id", 0) == content_id:
                 for product in grid.get("product"):
-                    menu = None
-                    if product["is_movie"] == 0:
-                        url = self.get_url(
-                            action="collections", content_id=product["series_id"]
-                        )
-                        LOG.info(url)
-                        menu = [("Open", f"RunPlugin({url})")]
-
-                    self.add_video_item(
-                        name=product["series_name"],
-                        video_info=product,
-                        context_menu=menu,
-                    )
+                    self.add_video_item(name=product["series_name"], video_info=product)
                 break
 
+        # Add Search item at the very top of the list
+        self.add_search_item()
         xbmcplugin.addSortMethod(self.handle, xbmcplugin.SORT_METHOD_NONE)
         xbmcplugin.endOfDirectory(self.handle)
 
     def make_post_request(self, url, body):
-        LOG.info("Making request: {}".format(url))
+        LOG.info(f"make_post_request: {url}")
         response = self.session.post(
-            url, headers=self._get_headers(), cookies=self.session.cookies, json=body
+            url=url,
+            headers=self._get_headers(),
+            cookies=self.session.cookies,
+            json=body,
         )
-        LOG.info(response.content)
         assert response.status_code == 200
         return response.json()
 
     def make_get_request(self, url):
-        LOG.info("Making request: {}".format(url))
+        LOG.info(f"make_get_request: {url}")
         response = self.session.get(
-            url, headers=self._get_headers(), cookies=self.session.cookies
+            url=url, headers=self._get_headers(), cookies=self.session.cookies
         )
-        LOG.info(response.content)
         assert response.status_code == 200
         return response.json()
 
@@ -457,6 +496,16 @@ class ViuPlugin(object):
             # Add our item to the Kodi virtual folder listing.
             xbmcplugin.addDirectoryItem(self.handle, url, list_item, True)
 
+    def add_search_item(self):
+        # Add Search item at the very top of the list
+        self.add_directory_item(
+            title=f"[{ADDON.getLocalizedString(33102)}]",
+            content_id=1,
+            description=ADDON.getLocalizedString(33102),
+            action="search",
+            position="top",
+        )
+
     def get_url(self, **kwargs):
         """
         Create a URL for calling the plugin recursively from the given set of keyword arguments.
@@ -479,55 +528,66 @@ class ViuPlugin(object):
         """
         data = self.make_get_request(
             VIU_PRODUCT_URL.format(
-                self.region, self.area_id, self.language_flag_id, product_id
+                self.region,
+                self.site_setting.area_id,
+                self.site_setting.language_flag_id,
+                product_id,
             )
         )
+        LOG.info(f"play_video: {data}")
+
         product = data["data"]["current_product"]
         series = data["data"]["series"]
-        name = series["name"]
-        number = int(product["number"])
+        series_name = series["name"]
+        episode_number = int(product["number"])
         synopsis = product["synopsis"]
+        description = product["description"]
+        duration = int(product["time_duration"])
+        is_movie = product["is_movie"]
+        ccs_product_id = product["ccs_product_id"]
+        title = (
+            series_name
+            if is_movie == 1
+            else f"{episode_number}. {series_name} - {synopsis}"
+        )
 
-        if int(self.user_status.user_level) < product.get("user_level", "0"):
+        if int(self.user_status.user_level) < int(product.get("user_level", "0")):
+            LOG.info(f"video is for user with level of {product['user_level']}")
             kodiutils.notification(
                 ADDON.getLocalizedString(33103),
                 ADDON.getLocalizedString(33104),
             )
             return
 
-        if product["is_movie"] == 1:
-            title = name
-        else:
-            title = f"{name} - {number}. {synopsis}"
-
         subtitles = []
         for subtitle in product["subtitle"]:
-            if settings.get_subtitle_lang() == subtitle["code"]:
-                subtitles.append(subtitle["subtitle_url"])
-
+            if subtitle["code"] == settings.get_subtitle_lang():
+                preferred_subtitle = subtitle["subtitle_url"].split("/")[-1]
+            subtitles.append(subtitle["subtitle_url"])
+        
         data = self.make_get_request(
-            VIU_STREAM_URL.format(self.language_flag_id, product["ccs_product_id"])
+            VIU_STREAM_URL.format(self.site_setting.language_flag_id, ccs_product_id)
         )
-
+        LOG.info(f"available streams: {data}")
         stream_url = self.get_stream_url(data["data"]["stream"])
 
         if not stream_url:
             raise ValueError("Missing video URL for {}".format(product_id))
 
-        LOG.info(
-            "playing: {}, url: {}, subtitles: {}".format(title, stream_url, subtitles)
-        )
+        LOG.info(f"playing: {title}, url: {stream_url}")
+
         # Create a playable item with a path to play.
         play_item = xbmcgui.ListItem(label=title, path=stream_url)
         play_item.setInfo(
             "video",
             {
                 "title": title,
-                "plot": product["description"],
+                "plot": description,
                 "playcount": 1,
-                "episode": int(product["number"]),
+                "episode": episode_number,
                 "season": 1,
-                "duration": int(product["time_duration"]),
+                "duration": duration,
+                "mediatype": "movie" if is_movie == 1 else "episode",
             },
         )
 
@@ -535,23 +595,69 @@ class ViuPlugin(object):
             play_item.setSubtitles(subtitles)
 
         # Pass the item to the Kodi player.
-        player = ViuPlayer(handle=self.handle, current_info=product, series_info=series)
+        player = ViuPlayer(self.handle)
         player.resolve(play_item)
 
-        monitor = xbmc.Monitor()
-        while not monitor.abortRequested() and player.playing:
-            if player.isPlayingVideo():
-                player.video_totaltime = player.getTotalTime()
-                player.video_lastpos = player.getTime()
+        if not player.waitForPlayBack(url=stream_url):
+            xbmcplugin.endOfDirectory(self.handle)
+            return
 
-            xbmc.sleep(1000)
+        if preferred_subtitle is not None:
+            for i, subtitle_stream in enumerate(player.getAvailableSubtitleStreams()):
+                if preferred_subtitle in subtitle_stream:
+                    player.setSubtitleStream(i)
+                    break
+
+        # Send up next signal
+        next_product = self.get_next_episode(episode_number, series)
+        LOG.info(f"next episode: {next_product}")
+
+        if not settings.is_upnext_enabled() or next_product is None:
+            return
+
+        next_info = dict(
+            current_episode=dict(
+                episodeid=product["product_id"],
+                tvshowid=product["product_id"],
+                title=title,
+                art={"thumb": product["cover_image_url"]},
+                season=1,
+                episode=episode_number,
+                showtitle=title,
+                plot=description,
+                playcount=1,
+                rating=None,
+                firstaired=None,
+                runtime=duration,
+            ),
+            next_episode=dict(
+                episodeid=next_product["product_id"],
+                tvshowid=next_product["product_id"],
+                title=next_product["synopsis"],
+                art={"thumb": next_product["cover_image_url"]},
+                season=1,
+                episode=next_product["number"],
+                showtitle=next_product["synopsis"],
+                plot=next_product["synopsis"],
+                playcount=0,
+                rating=None,
+                firstaired=None,
+                runtime=None,
+            ),
+            play_url=self.get_url(action="play", content_id=next_product["product_id"])
+        )
+
+        kodiutils.upnext_signal(
+            sender=ADDON_ID,
+            next_info=next_info,
+        )
 
     def router(self):
         """
         Main routing function which parses the plugin param string and handles it appropirately.
         """
         # Check the parameters passed to the plugin
-        LOG.info("Handling route params -- {}".format(self.params))
+        LOG.info("handling route params -- {}".format(self.params))
         if self.params:
             action = self.params.get("action")
             content_id = self.params.get("content_id")

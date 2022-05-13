@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
+import logging
 import xbmc
 import xbmcgui
 import xbmcvfs
 import json as json
 import os
 from resources.lib.common import ADDON
+
+LOG = logging.getLogger(__name__)
 
 def notification(
     header, message, time=5000, icon=ADDON.getAddonInfo("icon"), sound=True
@@ -46,36 +49,6 @@ def get_string(string_id):
     return ADDON.getLocalizedString(string_id).encode("utf-8", "ignore")
 
 
-def kodi_json_request(params):
-    data = json.dumps(params)
-    request = xbmc.executeJSONRPC(data)
-
-    try:
-        response = json.loads(request)
-    except UnicodeDecodeError:
-        response = json.loads(request.decode("utf-8", "ignore"))
-
-    try:
-        if "result" in response:
-            return response["result"]
-        return None
-    except KeyError:
-        LOG.warn("[%s] %s" % (params["method"], response["error"]["message"]))
-        return None
-
-
-def rmtree(path):
-    if isinstance(path, unicode):
-        path = path.encode("utf-8")
-
-    dirs, files = xbmcvfs.listdir(path)
-    for _dir in dirs:
-        rmtree(os.path.join(path, _dir))
-    for _file in files:
-        xbmcvfs.delete(os.path.join(path, _file))
-    xbmcvfs.rmdir(path)
-
-
 # Up Next
 def upnext_signal(sender, next_info):
     """Send a signal to Kodi using JSON RPC"""
@@ -83,7 +56,7 @@ def upnext_signal(sender, next_info):
     from json import dumps
 
     data = [to_unicode(b64encode(dumps(next_info).encode()))]
-    notify(sender=sender + ".SIGNAL", message="upnext_data", data=data)
+    notify(sender=f"{sender}.SIGNAL", message="upnext_data", data=data)
 
 
 def notify(sender, message, data):
@@ -97,10 +70,9 @@ def notify(sender, message, data):
         ),
     )
     if result.get("result") != "OK":
-        xbmc.log(
-            "Failed to send notification: " + result.get("error").get("message"), 4
-        )
+        LOG.info(f"Failed to send notification: {result.get('error').get('message')}")
         return False
+    LOG.info("Succesfully sent notification")
     return True
 
 

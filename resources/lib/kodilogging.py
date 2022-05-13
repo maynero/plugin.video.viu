@@ -11,7 +11,7 @@ from resources.lib.common import ADDON_ID
 class LoggerHandler(logging.StreamHandler):
     def __init__(self):
         logging.StreamHandler.__init__(self)
-        formatter = logging.Formatter(fmt="%(name)s: %(message)s")
+        formatter = logging.Formatter("[{}] [%(name)s] %(message)s".format(ADDON_ID))
         self.setFormatter(formatter)
 
     def emit(self, record):
@@ -36,12 +36,8 @@ class LoggerHandler(logging.StreamHandler):
         pass
 
 
-def config(logger):
-    """Setup the logger with this handler"""
+def config():
+    """ Setup the logger with this handler """
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)  # Make sure we pass all messages, Kodi will do some filtering itself.
     logger.addHandler(LoggerHandler())
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(LoggerHandler())
-
-
-LOG = logging.getLogger(ADDON_ID)
-config(LOG)

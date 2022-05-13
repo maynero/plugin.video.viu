@@ -1,144 +1,106 @@
-import sys
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import, division, unicode_literals
 import xbmc
 import xbmcplugin
-from resources.lib.kodilogging import ADDON_ID, LOG
-from resources.lib import kodiutils
+import logging
 
+LOG = logging.getLogger(__name__)
 
 class ViuPlayer(xbmc.Player):
-    def __init__(self, handle, current_info, series_info):
+    """A custom Player object to check if Playback has started"""
+
+    def __init__(self, handle):
+        """Initialises a custom Player object"""
+        xbmc.Player.__init__(self)
+
+        self.__monitor = xbmc.Monitor()
+        self.__playBackEventsTriggered = False  # pylint: disable=invalid-name
+        self.__playPlayBackStoppedEventsTriggered = (
+            False  # pylint: disable=invalid-name
+        )
+        self.__pollInterval = 1  # pylint: disable=invalid-name
         self.handle = handle
-        self.video_id = None
-        self.video_lastpos = 0
-        self.video_totaltime = 0
-        self.playing = False
-        self.paused = False
-        self.series_info = series_info
-        self.current_info = current_info
-        self.number = int(self.current_info["number"])
-        self.title = f"{self.series_info['name']} - {self.number}. {self.current_info['synopsis']}"
 
-    def resolve(self, li):
-        xbmcplugin.setResolvedUrl(self.handle, True, listitem=li)
-        LOG.info("[ViuPlayer] Event resolve")
-        self.playing = True
+    def resolve(self, list_item):
+        xbmcplugin.setResolvedUrl(self.handle, True, listitem=list_item)
 
-    def onPlayBackStarted(self):  # pylint: disable=invalid-name
-        """Called when user starts playing a file"""
-        LOG.info("[ViuPlayer] Event onPlayBackStarted")
-        self.onAVStarted()
+    def waitForPlayBack(self, url=None, time_out=30):  # pylint: disable=invalid-name
+        """Blocks the call until playback is started. If an url was specified, it will wait
+        for that url to be the active one playing before returning.
+        :type url: str
+        :type time_out: int
+        """
+        LOG.info("ViuPlayer: Waiting for playback")
+        if self.__is_url_playing(url):
+            self.__playBackEventsTriggered = True
+            LOG.info("ViuPlayer: Already Playing")
+            return True
+
+        for i in range(0, int(time_out / self.__pollInterval)):
+            if self.__monitor.abortRequested():
+                LOG.info("ViuPlayer: Abort requested (%s)" % i * self.__pollInterval)
+                return False
+
+            if self.__is_url_playing(url):
+                LOG.info("ViuPlayer: PlayBack started (%s)" % i * self.__pollInterval)
+                return True
+
+            if self.__playPlayBackStoppedEventsTriggered:
+                LOG.warning(
+                    "ViuPlayer: PlayBackStopped triggered while waiting for start."
+                )
+                return False
+
+            self.__monitor.waitForAbort(self.__pollInterval)
+            LOG.info("ViuPlayer: Waiting for an abort (%s)", i * self.__pollInterval)
+
+        LOG.warning("ViuPlayer: time-out occurred waiting for playback (%s)", time_out)
+        return False
 
     def onAVStarted(self):  # pylint: disable=invalid-name
-        """Called when Kodi has a video or audiostream"""
-        LOG.info("[ViuPlayer] Event onAVStarted")
-        self.push_upnext()
-
-    def onPlayBackSeek(self, time, seekOffset):  # pylint: disable=invalid-name
-        """Called when user seeks to a time"""
-        LOG.info(
-            "[ViuPlayer] Event onPlayBackSeek time="
-            + str(time)
-            + " offset="
-            + str(seekOffset)
-        )
-        self.video_lastpos = time // 1000
-
-        # If we seek beyond the end, exit Player
-        if self.video_lastpos >= self.video_totaltime:
-            self.stop()
-
-    def onPlayBackPaused(self):  # pylint: disable=invalid-name
-        """Called when user pauses a playing file"""
-        LOG.info("[ViuPlayer] Event onPlayBackPaused")
-        self.paused = True
-
-    def onPlayBackEnded(self):  # pylint: disable=invalid-name
-        """Called when Kodi has ended playing a file"""
-        LOG.info("[ViuPlayer] Event onPlayBackEnded")
-        self.playing = False
-        # Up Next calls onPlayBackEnded before onPlayBackStarted if user doesn't select Watch Now
-        # Reset current video id
-        self.video_id = None
+        """Will be called when Kodi has a video or audiostream"""
+        LOG.info("ViuPlayer: [onAVStarted] called")
+        self.__playback_started()
 
     def onPlayBackStopped(self):  # pylint: disable=invalid-name
-        """Called when user stops Kodi playing a file"""
-        LOG.info("[ViuPlayer] Event onPlayBackStopped")
-        self.playing = False
-        # Reset current video id
-        self.video_id = None
+        """Will be called when [user] stops Kodi playing a file"""
+        LOG.info("ViuPlayer: [onPlayBackStopped] called")
+        self.__playback_stopped()
 
-    def onPlayerExit(self):  # pylint: disable=invalid-name
-        """Called when player exits"""
-        LOG.info("[ViuPlayer] Event onPlayerExit")
-        self.playing = False
+    def onPlayBackError(self):  # pylint: disable=invalid-name
+        """Will be called when playback stops due to an error."""
+        LOG.info("ViuPlayer: [onPlayBackError] called")
+        self.__playback_stopped()
 
-    def onPlayBackResumed(self):  # pylint: disable=invalid-name
-        """Called when user resumes a paused file or a next playlist item is started"""
-        if self.paused:
-            suffix = "after pausing"
-            self.paused = False
-        # playlist change
-        # Up Next uses this when user clicks Watch Now, only happens if user is watching first episode in row after
-        # that onPlayBackEnded is used even if user clicks Watch Now
-        else:
-            suffix = "after playlist change"
-            self.paused = False
-            # Reset current video id
-            self.video_id = None
-        log = "[ViuPlayer] Event onPlayBackResumed " + suffix
-        LOG.info(log)
+    def __playback_stopped(self):
+        """Sets the correct flags after playback stopped"""
+        self.__playBackEventsTriggered = False
+        self.__playPlayBackStoppedEventsTriggered = True
 
-    def push_upnext(self):
-        next_product = self.get_next_episode(self.number)
-        LOG.info(next_product)
+    def __playback_started(self):
+        """Sets the correct flags after playback started"""
+        self.__playBackEventsTriggered = True
+        self.__playPlayBackStoppedEventsTriggered = False
 
-        if next_product is not None:
-            next_info = dict(
-                current_episode=dict(
-                    episodeid=self.current_info["product_id"],
-                    tvshowid=self.current_info["series_id"],
-                    title=self.title,
-                    art={"thumb": self.current_info["cover_image_url"]},
-                    season=None,
-                    episode=str(self.current_info),
-                    showtitle=self.title,
-                    plot=self.current_info["description"],
-                    playcount=1,
-                    rating=None,
-                    firstaired=None,
-                    runtime=int(self.current_info["time_duration"]),
-                ),
-                next_episode=dict(
-                    episodeid=next_product["product_id"],
-                    tvshowid=self.current_info["series_id"],
-                    title=next_product["synopsis"],
-                    art={"thumb": next_product["cover_image_url"]},
-                    season=None,
-                    episode=self.number,
-                    showtitle=next_product["synopsis"],
-                    plot=next_product["synopsis"],
-                    playcount=0,
-                    rating=None,
-                    firstaired=None,
-                    runtime=int(self.current_info["time_duration"]),
-                ),
-                play_url=f"{ADDON_ID}/action=play&content_id={next_product['product_id']}",
-                notification_time=10,
-            )
+    def __is_url_playing(self, url):
+        """Checks whether the given url is playing
+        :param str url: The url to check for playback.
+        :return: Indication if the url is actively playing or not.
+        :rtype: bool
+        """
+        if not self.isPlaying():
+            LOG.info("ViuPlayer: Not playing")
+            return False
 
-            kodiutils.upnext_signal(
-                sender=ADDON_ID,
-                next_info=next_info,
-            )
+        if not self.__playBackEventsTriggered:
+            LOG.info("ViuPlayer: Playing but the Kodi events did not yet trigger")
+            return False
 
-    def get_next_episode(self, cur_ep_num):
-        # Viu episode numbering is just sequential numbers, adding one to the current number should provide accurate next episode
-        next_ep_num = cur_ep_num + 1
+        # We are playing
+        if url is None or url.startswith("plugin://"):
+            LOG.info("ViuPlayer: No valid URL to check playback against: %s", url)
+            return True
 
-        return next(
-            filter(
-                lambda product: (int(product.get("number")) == next_ep_num),
-                self.series_info["product"],
-            ),
-            None,
-        )
+        playing_file = self.getPlayingFile()
+        LOG.info("ViuPlayer: Checking \n'%s' vs \n'%s'", url, playing_file)
+        return url == playing_file

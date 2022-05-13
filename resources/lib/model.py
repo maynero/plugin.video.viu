@@ -1,4 +1,4 @@
-class Product():
+class Product:
     def __init__(
         self,
         product_id,
@@ -41,15 +41,15 @@ class Product():
         self.allow_tv = allow_tv
         self.released_product_total = released_product_total
 
-class UserStatus():
-    def __init__(
-        self,
-        user_id,
-        username,
-        user_level,
-        privileges
-    ):
+
+class UserStatus:
+    def __init__(self, user_id, username, user_level):
         self.user_id = user_id
         self.username = username
         self.user_level = user_level
-        self.privileges = privileges 
+
+
+class SiteSetting:
+    def __init__(self, area_id, language_flag_id):
+        self.area_id = area_id
+        self.language_flag_id = language_flag_id
