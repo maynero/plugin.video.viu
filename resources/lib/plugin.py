@@ -560,6 +560,7 @@ class ViuPlugin(object):
             return
 
         subtitles = []
+        preferred_subtitle = None
         for subtitle in product["subtitle"]:
             if subtitle["code"] == settings.get_subtitle_lang():
                 preferred_subtitle = subtitle["subtitle_url"].split("/")[-1]
