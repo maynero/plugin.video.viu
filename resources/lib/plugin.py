@@ -12,6 +12,7 @@ from resources.lib import model, kodiutils, settings
 from urllib.parse import urlencode
 from urllib.parse import parse_qsl
 from bs4 import BeautifulSoup
+from datetime import datetime
 
 LOG = logging.getLogger(__name__)
 
@@ -395,11 +396,22 @@ class ViuPlugin(object):
         user_level = video_info.get("user_level", 0)
         image = video_info.get("cover_image_url")
         content_id = video_info.get("product_id", video_info.get("id"))
+        product_start_time = video_info.get(
+            "schedule_start_time", video_info.get("product_schedule_start_time")
+        )
+        start_time = datetime.now()
+
+        if product_start_time is not None:
+            start_time = datetime.fromtimestamp(int(product_start_time))
 
         if is_movie == 1:
             title = name
         else:
             title = f"{sequence}. {name} - {synopsis}"
+
+        # Tag items that are not release yet
+        if start_time > datetime.now():
+            title = f"{title} [COLOR red][B](Available at {start_time.strftime('%b %d %Y %H:%M %p')})[/B][/COLOR]"
 
         if user_level == 2:
             title = f"[COLOR red][B]*[/B][/COLOR] {title}"
@@ -430,7 +442,8 @@ class ViuPlugin(object):
             list_item.addContextMenuItems(context_menu)
 
         if content_id is not None:
-            list_item.setProperty("IsPlayable", "true")
+            if not start_time > datetime.now():
+                list_item.setProperty("IsPlayable", "true")
             url = self.get_url(action="play", content_id=content_id)
 
         # Add our item to the Kodi virtual folder listing.
@@ -565,7 +578,7 @@ class ViuPlugin(object):
             if subtitle["code"] == settings.get_subtitle_lang():
                 preferred_subtitle = subtitle["subtitle_url"].split("/")[-1]
             subtitles.append(subtitle["subtitle_url"])
-        
+
         data = self.make_get_request(
             VIU_STREAM_URL.format(self.site_setting.language_flag_id, ccs_product_id)
         )
@@ -613,7 +626,12 @@ class ViuPlugin(object):
         next_product = self.get_next_episode(episode_number, series)
         LOG.info(f"next episode: {next_product}")
 
-        if not settings.is_upnext_enabled() or next_product is None:
+        if (
+            not settings.is_upnext_enabled()
+            or next_product is None
+            or datetime.fromtimestamp(int(next_product["schedule_start_time"]))
+            > datetime.now()
+        ):
             return
 
         next_info = dict(
@@ -645,7 +663,7 @@ class ViuPlugin(object):
                 firstaired=None,
                 runtime=None,
             ),
-            play_url=self.get_url(action="play", content_id=next_product["product_id"])
+            play_url=self.get_url(action="play", content_id=next_product["product_id"]),
         )
 
         kodiutils.upnext_signal(
@@ -669,14 +687,14 @@ class ViuPlugin(object):
             elif action == "collections":
                 start_offset = self.params.get("start_offset", 0)
                 self.list_collections(content_id, start_offset, title)
-            elif action == "play":
-                self.play_video(content_id)
-            elif action == "search":
-                self.list_search()
             elif action == "recommendations":
                 self.list_recommendations()
             elif action == "recommended_collection":
                 self.list_recommended_collections(content_id, title)
+            elif action == "search":
+                self.list_search()
+            elif action == "play":
+                self.play_video(content_id)
             else:
                 # If the provided paramstring does not contain a supported action
                 # we raise an exception. This helps to catch coding errors,

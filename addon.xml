@@ -19,6 +19,10 @@
         <forum></forum>
         <source>https://github.com/maynero/plugin.video.viu</source>
         <news>
+v0.0.4+matrix.1 (2022-05-27)
+- Fix issue where "coming soon" video are being sent to UpNext
+- Fix issue where "coming soon" video can be played but it actually played previous episode
+
 v0.0.3+matrix.1 (2022-05-13)
 - Add undefined preferred_subtitle variable
 
