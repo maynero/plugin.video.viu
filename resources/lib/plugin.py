@@ -414,7 +414,7 @@ class ViuPlugin(object):
             title = f"{title} [COLOR red][B](Available at {start_time.strftime('%b %d %Y %H:%M %p')})[/B][/COLOR]"
 
         if user_level == 2:
-            title = f"[COLOR red][B]*[/B][/COLOR] {title}"
+            title = f"{title} [COLOR red][B]*[/B][/COLOR]"
 
         list_item = xbmcgui.ListItem(label=title)
 
