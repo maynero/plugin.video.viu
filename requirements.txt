@@ -8,4 +8,4 @@ tox
 xmlschema
 Kodistubs==19.0.3
 httpx[http2]
-
+beautifulsoup4

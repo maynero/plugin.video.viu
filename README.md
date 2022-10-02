@@ -1,7 +1,9 @@
 # Viu Kodi Addon (Unofficial)
 
+[![Kodi version](https://img.shields.io/badge/kodi%20versions-19--20-blue)](https://kodi.tv/)
 [![GitHub release](https://img.shields.io/github/release/maynero/plugin.video.viu.svg)](https://github.com/maynero/plugin.video.viu/releases)
 [![License: GPLv3](https://img.shields.io/badge/License-GPLv3-yellow.svg)](https://opensource.org/licenses/GPL-3.0)
+[![CI](https://github.com/maynero/plugin.video.viu/workflows/CI/badge.svg)](https://github.com/maynero/plugin.video.viu/actions?query=workflow:CI)
 
 ## Disclaimer
 This plugin is not affiliated nor supported by Viu.

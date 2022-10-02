@@ -26,14 +26,14 @@ jobs:
       run: python -m tox -q -e flake8,py
       if: always()
     - name: Run pylint
-      run: python -m pylint resources/lib/ tests/
+      run: python -m pylint resources/lib/
       if: always()
     - name: Analyze with SonarCloud
       uses: SonarSource/sonarcloud-github-action@v1.4
       with:
         args: >
           -Dsonar.organization=add-ons
-          -Dsonar.projectKey=add-ons_plugin.video.netflix
+          -Dsonar.projectKey=add-ons_plugin.video.viu
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

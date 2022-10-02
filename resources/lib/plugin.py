@@ -447,7 +447,7 @@ class ViuPlugin(object):
             list_item.addContextMenuItems(context_menu)
 
         if content_id is not None:
-            if not start_time > datetime.now():
+            if start_time <= datetime.now():
                 list_item.setProperty("IsPlayable", "true")
             url = self.get_url(action="play", content_id=content_id)
 
@@ -463,7 +463,6 @@ class ViuPlugin(object):
         parent_title="",
         item=None,
         position=None,
-        url_params={},
     ):
         list_item = xbmcgui.ListItem(label=title)
 
@@ -489,7 +488,6 @@ class ViuPlugin(object):
             action=action,
             content_id=content_id,
             title=f"{parent_title}/{title}" if parent_title else title,
-            **url_params,
         )
 
         # Add our item to the Kodi virtual folder listing.
