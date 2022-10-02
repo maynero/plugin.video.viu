@@ -6,6 +6,7 @@ from resources.lib.common import ADDON
 
 LOG = logging.getLogger(__name__)
 
+
 def notification(
     header, message, time=5000, icon=ADDON.getAddonInfo("icon"), sound=True
 ):
@@ -67,7 +68,7 @@ def notify(sender, message, data):
         ),
     )
     if result.get("result") != "OK":
-        LOG.info("Failed to send notification: %s", result.get('error').get('message'))
+        LOG.info("Failed to send notification: %s", result.get("error").get("message"))
         return False
     LOG.info("Succesfully sent notification")
     return True

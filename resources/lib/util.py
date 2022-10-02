@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 class DotDictionary(dict):
     """dot.notation access to dictionary attributes"""
     __getattr__ = dict.get
