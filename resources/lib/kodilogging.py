@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-
 import logging
 import xbmc
-
 from resources.lib import settings
 from resources.lib.common import ADDON_ID
 
@@ -11,7 +9,7 @@ from resources.lib.common import ADDON_ID
 class LoggerHandler(logging.StreamHandler):
     def __init__(self):
         logging.StreamHandler.__init__(self)
-        formatter = logging.Formatter("[{}] [%(name)s] %(message)s".format(ADDON_ID))
+        formatter = logging.Formatter(f"[{ADDON_ID}] [%(name)s] %(message)s")
         self.setFormatter(formatter)
 
     def emit(self, record):

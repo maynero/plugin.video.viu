@@ -28,6 +28,7 @@ def get_subtitle_lang():
 def is_account_login_enabled():
     return get_setting_as_bool("accountlogin")
 
+
 def get_username():
     return get_setting("username")
 

@@ -1,5 +1,8 @@
 # Viu Kodi Addon (Unofficial)
 
+[![GitHub release](https://img.shields.io/github/release/maynero/plugin.video.viu.svg)](https://github.com/maynero/plugin.video.viu/releases)
+[![License: GPLv3](https://img.shields.io/badge/License-GPLv3-yellow.svg)](https://opensource.org/licenses/GPL-3.0)
+
 ## Disclaimer
 This plugin is not affiliated nor supported by Viu.
 
@@ -16,4 +19,21 @@ This plugin is not affiliated nor supported by Viu.
  - plugin.video.youngkbell.viu by mani-coder for the base code on this addon: https://github.com/mani-coder/plugin.video.youngkbell.viu
  - add-ons for the player.py code: https://github.com/add-ons
 
-License: [GPL v.3](http://www.gnu.org/copyleft/gpl.html)
+## Releases
+v0.0.5+matrix.1 (2022-08-25)
+- Fix unsorted video items when some episodes are only available on premium
+
+v0.0.4+matrix.1 (2022-05-27)
+- Fix issue where "coming soon" video are being sent to UpNext
+- Fix issue where "coming soon" video can be played but it actually played previous episode
+
+v0.0.3+matrix.1 (2022-05-13)
+- Add undefined preferred_subtitle variable
+
+v0.0.2+matrix.1 (2022-05-13)
+- Add support for account login
+- Add support for Up Next
+- Fix logging labels
+
+v0.0.1-alpha (2022-05-09)
+- Initial release

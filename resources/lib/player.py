@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, unicode_literals
+import logging
 import xbmc
 import xbmcplugin
-import logging
 
 LOG = logging.getLogger(__name__)
+
 
 class ViuPlayer(xbmc.Player):
     """A custom Player object to check if Playback has started"""
@@ -38,11 +39,11 @@ class ViuPlayer(xbmc.Player):
 
         for i in range(0, int(time_out / self.__pollInterval)):
             if self.__monitor.abortRequested():
-                LOG.info("ViuPlayer: Abort requested (%s)" % i * self.__pollInterval)
+                LOG.info("ViuPlayer: Abort requested (%s)", i * self.__pollInterval)
                 return False
 
             if self.__is_url_playing(url):
-                LOG.info("ViuPlayer: PlayBack started (%s)" % i * self.__pollInterval)
+                LOG.info("ViuPlayer: PlayBack started (%s)", i * self.__pollInterval)
                 return True
 
             if self.__playPlayBackStoppedEventsTriggered:

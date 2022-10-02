@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-from resources.lib import settings
-
 import logging
 import xbmc
+from resources.lib import settings
 
 
 class Logger(logging.StreamHandler):
@@ -21,7 +20,7 @@ class Logger(logging.StreamHandler):
             logging.DEBUG: xbmc.LOGDEBUG,
             logging.NOTSET: xbmc.LOGNONE,
         }
-        if settings.isDebug():
+        if settings.is_debug():
             try:
                 xbmc.log(self.format(record), levels[record.levelno])
             except UnicodeEncodeError:
