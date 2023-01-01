@@ -2,7 +2,7 @@ name: Release
 on:
   push:
     tags:
-    - 'v*'
+      - "v*"
 jobs:
   build:
     if: github.event.base_ref == 'refs/heads/master'

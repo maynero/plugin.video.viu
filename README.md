@@ -1,9 +1,9 @@
 # Viu Kodi Addon (Unofficial)
 
-[![Kodi version](https://img.shields.io/badge/kodi%20versions-19--20-blue)](https://kodi.tv/)
+[![Kodi version](https://img.shields.io/badge/kodi%20versions-19-blue)](https://kodi.tv/)
 [![GitHub release](https://img.shields.io/github/release/maynero/plugin.video.viu.svg)](https://github.com/maynero/plugin.video.viu/releases)
 [![License: GPLv3](https://img.shields.io/badge/License-GPLv3-yellow.svg)](https://opensource.org/licenses/GPL-3.0)
-[![CI](https://github.com/maynero/plugin.video.viu/workflows/CI/badge.svg)](https://github.com/maynero/plugin.video.viu/actions?query=workflow:CI)
+[![Build Status](https://img.shields.io/github/workflow/status/maynero/plugin.video.viu/CI/master)](https://github.com/maynero/plugin.video.viu/actions?query=branch%3Amaster)
 
 ## Disclaimer
 This plugin is not affiliated nor supported by Viu.
@@ -22,20 +22,20 @@ This plugin is not affiliated nor supported by Viu.
  - add-ons for the player.py code: https://github.com/add-ons
 
 ## Releases
-v0.0.5+matrix.1 (2022-08-25)
+### v0.0.5 (2022-08-25)
 - Fix unsorted video items when some episodes are only available on premium
 
-v0.0.4+matrix.1 (2022-05-27)
+### v0.0.4 (2022-05-27)
 - Fix issue where "coming soon" video are being sent to UpNext
 - Fix issue where "coming soon" video can be played but it actually played previous episode
 
-v0.0.3+matrix.1 (2022-05-13)
+### v0.0.3 (2022-05-13)
 - Add undefined preferred_subtitle variable
 
-v0.0.2+matrix.1 (2022-05-13)
+### v0.0.2 (2022-05-13)
 - Add support for account login
 - Add support for Up Next
 - Fix logging labels
 
-v0.0.1-alpha (2022-05-09)
+### v0.0.1-alpha (2022-05-09)
 - Initial release
