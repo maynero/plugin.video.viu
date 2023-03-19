@@ -4,6 +4,7 @@ from urllib.parse import urlencode
 from urllib.parse import parse_qsl
 import sys
 import logging
+import uuid
 import requests
 import xbmc
 import xbmcgui
@@ -37,7 +38,10 @@ class ViuPlugin(object):
         if not item:
             return None
 
-        return item["series_image_url"] or item["cover_image_url"]
+        return {
+            "poster": item.get("series_image_url") or item.get("cover_image_url"),
+            "fanart": item.get("product_image_url"),
+        }
 
     @staticmethod
     def get_user_input():
@@ -54,10 +58,10 @@ class ViuPlugin(object):
         for url_key in ["url4", "url3", "url2", "url"]:
             if url_key in stream:
                 resolution_key = settings.get_resolution()
-                if resolution_key in stream[url_key]:
-                    return stream[url_key][resolution_key]
+                if resolution_key in stream.get(url_key):
+                    return stream.get(url_key).get(resolution_key)
 
-                return stream[url_key][list(stream[url_key].keys())[-1]]
+                return stream.get(url_key).get(list(stream.get(url_key).keys())[-1])
 
             return ""
 
@@ -69,7 +73,7 @@ class ViuPlugin(object):
         return next(
             filter(
                 lambda product: (int(product.get("number")) == next_ep_num),
-                series["product"],
+                series.get("product"),
             ),
             None,
         )
@@ -91,13 +95,13 @@ class ViuPlugin(object):
         self.region = (
             self.params["region"] if "region" in self.params else self._get_region()
         )
-        self.token = (
-            self.params["token"] if "token" in self.params else self._get_token()
-        )
         self.site_setting = (
             self.params["site_setting"]
             if "site_setting" in self.params
             else self._get_site_setting()
+        )
+        self.token = (
+            self.params["token"] if "token" in self.params else self._get_token()
         )
         self.user_status = (
             self.params["user_status"]
@@ -107,11 +111,12 @@ class ViuPlugin(object):
 
     def _get_site_setting(self):
         data = self.make_get_request(common.VIU_SETTING_URL)
-        area = data["server"]["area"]
+        area = data.get("server").get("area")
 
         site_setting = model.SiteSetting(
             area_id=area.get("area_id", 5),
-            language_flag_id=area["language"][0]["language_flag_id"],
+            language_flag_id=area.get("language")[0].get("language_flag_id"),
+            language=area.get("language")[0].get("mark"),
         )
         return site_setting
 
@@ -121,8 +126,9 @@ class ViuPlugin(object):
             "Referer": "https://www.viu.com/",
             "Accept-Encoding": "gzip, deflate, br",
             "Accept-Language": "en-US,en;q=0.9",
-            "Accept": "application/json, text/plain, */*",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
             "Content-Type": "application/json",
+            "Upgrade-Insecure-Requests": "1",
         }
         if hasattr(self, "token"):
             headers["Authorization"] = self.token
@@ -135,9 +141,22 @@ class ViuPlugin(object):
         return data.get("countryCode", "ph").lower()
 
     def _get_token(self):
-        self.session.get(f"https://www.viu.com/ott/{self.region}")
-        LOG.info("_get_token: %s", self.session.cookies)
-        return f"Bearer {self.session.cookies.get('token')}"
+        body = {
+            "countryCode": self._get_region().upper(),
+            "deviceId": str(uuid.uuid4()),
+            "platform": "browser",
+            "platformFlagLabel": "web",
+            "language": self.site_setting.language,
+            "carrierId": "0",
+        }
+
+        data = self.make_post_request(
+            common.VIU_TOKEN_URL,
+            body=body,
+        )
+
+        LOG.info("_get_token: %s", data)
+        return f"Bearer {data.get('token')}"
 
     def _get_user_status(self):
         if (
@@ -154,17 +173,17 @@ class ViuPlugin(object):
             LOG.info("_get_user_status, auth: %s", data)
 
             if data["status"] == 0:
-                error_message = data["error"]["message"]
+                error_message = data.get("error").get("message")
                 LOG.info("_get_user_status: %s", error_message)
                 kodiutils.notification("Unable to login", message=error_message)
             else:
-                self.token = f"Bearer {data['token']}"
+                self.token = f"Bearer {data.get('token')}"
 
         data = self.make_get_request(common.VIU_USER_STATUS_URL)
         LOG.info("_get_user_status: %s", data)
-        user = data["user"]
+        user = data.get("user")
         user_status = model.UserStatus(
-            user["userId"], user["username"], user["userLevel"]
+            user.get("userId"), user.get("username"), user.get("userLevel")
         )
         return user_status
 
@@ -181,8 +200,8 @@ class ViuPlugin(object):
                 start_offset,
             )
         )
-        series = data["data"]["series"]
-        series_total = data["data"]["category_series_total"][0]
+        series = data.get("data").get("series")
+        series_total = data.get("data").get("category_series_total")[0]
 
         for product in series:
             product_id = product.get("product_id")
@@ -207,7 +226,7 @@ class ViuPlugin(object):
 
         self.add_next_page_item(
             total=int(series_total.get("series_total", "1")),
-            content_id=series_total["category_id"],
+            content_id=series_total.get("category_id"),
             start_offset=int(start_offset),
             original_title=container_name,
             action="collections",
@@ -231,9 +250,11 @@ class ViuPlugin(object):
             )
         )
 
-        for product in data["data"]["series"]["product"]:
+        for product in data.get("data").get("series").get("product"):
             self.add_video_item(
-                data["data"]["series"]["name"], product, data["data"]["series"]["tag"]
+                data.get("data").get("series").get("name"),
+                product,
+                data.get("data").get("series").get("tag"),
             )
 
         xbmcplugin.addSortMethod(self.handle, xbmcplugin.SORT_METHOD_LABEL)
@@ -249,11 +270,13 @@ class ViuPlugin(object):
         assert response.status_code == 200
         soup = BeautifulSoup(response.text, "html.parser")
 
-        for tag in soup.find("ul", class_="v-nav").find_all("li"):
+        for tag in soup.find("ul", class_="MuiBox-root").find_all("li"):
             for cat in tag.find_all("a", href=True):
+                category_id = "".join(list(filter(str.isdigit, cat["href"])))
+
                 self.add_directory_item(
-                    title=cat.get_text(),
-                    content_id=cat["data-id"],
+                    title=cat["title"],
+                    content_id=category_id,
                     description=cat.get_text(),
                     action="collections",
                 )
@@ -294,8 +317,8 @@ class ViuPlugin(object):
             body=body,
         )
 
-        series_list = data["data"].get("series")
-        product_list = data["data"].get("product")
+        series_list = data.get("data").get("series")
+        product_list = data.get("data").get("product")
 
         if (
             not series_list
@@ -311,21 +334,21 @@ class ViuPlugin(object):
 
         if series_list and series_list is not None:
             for series in series_list:
-                if series["category_name"] != "Preview":
+                if series.get("category_name") != "Preview":
                     self.add_directory_item(
-                        content_id=series["product_id"],
-                        title=series["name"],
-                        description=series["name"],
+                        content_id=series.get("product_id"),
+                        title=series.get("name"),
+                        description=series.get("name"),
                         action="product",
                         parent_title=f"Search/{query}",
                         item=series,
                     )
                 else:
-                    self.add_video_item(series["name"], series)
+                    self.add_video_item(series.get("name"), series)
 
         if product_list and product_list is not None:
             for product in product_list:
-                self.add_video_item(product["series_name"], product)
+                self.add_video_item(product.get("series_name"), product)
 
         xbmcplugin.addSortMethod(self.handle, xbmcplugin.SORT_METHOD_LABEL)
         xbmcplugin.endOfDirectory(self.handle)
@@ -341,13 +364,13 @@ class ViuPlugin(object):
                 self.site_setting.area_id, self.site_setting.language_flag_id
             )
         )
-        for grid in data["data"]["grid"]:
+        for grid in data.get("data").get("grid"):
             LOG.info("viu homepage grid: %s", grid)
-            if grid is not None and grid["product"] is not None:
+            if grid is not None and grid.get("product") is not None:
                 self.add_directory_item(
-                    title=grid["name"] or grid["description"],
-                    content_id=grid["grid_id"],
-                    description=grid["description"] or grid["name"],
+                    title=grid.get("name") or grid.get("description"),
+                    content_id=grid.get("grid_id"),
+                    description=grid.get("description") or grid.get("name"),
                     action="recommended_collection",
                 )
 
@@ -364,10 +387,10 @@ class ViuPlugin(object):
                 self.site_setting.area_id, self.site_setting.language_flag_id
             )
         )
-        for grid in data["data"]["grid"]:
+        for grid in data.get("data").get("grid"):
             if grid is not None and grid.get("grid_id", 0) == content_id:
                 for product in grid.get("product"):
-                    self.add_video_item(name=product["series_name"], video_info=product)
+                    self.add_video_item(name=product.get("series_name"), video_info=product)
                 break
 
         # Add Search item at the very top of the list
@@ -426,7 +449,7 @@ class ViuPlugin(object):
         all_genre = []
         if genres is not None:
             for genre in genres:
-                all_genre.append(genre["name"])
+                all_genre.append(genre.get("name"))
         else:
             all_genre.append("All")
 
@@ -468,7 +491,13 @@ class ViuPlugin(object):
 
         if item:
             image = self.get_images(item)
-            list_item.setArt({"thumb": image, "icon": image, "fanart": image})
+            list_item.setArt(
+                {
+                    "thumb": image["poster"],
+                    "icon": image["poster"],
+                    "fanart": image["fanart"],
+                }
+            )
 
         if position:
             list_item.setProperty("SpecialSort", position)
@@ -552,15 +581,15 @@ class ViuPlugin(object):
         )
         LOG.info("play_video: %s", data)
 
-        product = data["data"]["current_product"]
-        series = data["data"]["series"]
-        series_name = series["name"]
-        episode_number = int(product["number"])
-        synopsis = product["synopsis"]
-        description = product["description"]
-        duration = int(product["time_duration"])
-        is_movie = product["is_movie"]
-        ccs_product_id = product["ccs_product_id"]
+        product = data.get("data").get("current_product")
+        series = data.get("data").get("series")
+        series_name = series.get("name")
+        episode_number = int(product.get("number"))
+        synopsis = product.get("synopsis")
+        description = product.get("description")
+        duration = int(product.get("time_duration"), 0)
+        is_movie = product.get("is_movie", False)
+        ccs_product_id = product.get("ccs_product_id")
         title = (
             series_name
             if is_movie == 1
@@ -577,10 +606,10 @@ class ViuPlugin(object):
 
         subtitles = []
         preferred_subtitle = None
-        for subtitle in product["subtitle"]:
-            if subtitle["code"] == settings.get_subtitle_lang():
-                preferred_subtitle = subtitle["subtitle_url"].split("/")[-1]
-            subtitles.append(subtitle["subtitle_url"])
+        for subtitle in product.get("subtitle"):
+            if subtitle.get("code") == settings.get_subtitle_lang():
+                preferred_subtitle = subtitle.get("subtitle_url").split("/")[-1]
+            subtitles.append(subtitle.get("subtitle_url"))
 
         data = self.make_get_request(
             common.VIU_STREAM_URL.format(
@@ -628,6 +657,10 @@ class ViuPlugin(object):
                     break
 
         # Send up next signal
+        if xbmc.getCondVisibility('System.HasAddon(service.upnext)') == 0:
+            kodiutils.notification(common.ADDON.getLocalizedString(33105), common.ADDON.getLocalizedString(33106))
+            return
+
         next_product = self.get_next_episode(episode_number, series)
         LOG.info("next episode: %s", next_product)
 
@@ -639,37 +672,39 @@ class ViuPlugin(object):
         ):
             return
 
-        next_info = dict(
-            current_episode=dict(
-                episodeid=product["product_id"],
-                tvshowid=product["product_id"],
-                title=title,
-                art={"thumb": product["cover_image_url"]},
-                season=1,
-                episode=episode_number,
-                showtitle=title,
-                plot=description,
-                playcount=1,
-                rating=None,
-                firstaired=None,
-                runtime=duration,
-            ),
-            next_episode=dict(
-                episodeid=next_product["product_id"],
-                tvshowid=next_product["product_id"],
-                title=next_product["synopsis"],
-                art={"thumb": next_product["cover_image_url"]},
-                season=1,
-                episode=next_product["number"],
-                showtitle=next_product["synopsis"],
-                plot=next_product["synopsis"],
-                playcount=0,
-                rating=None,
-                firstaired=None,
-                runtime=None,
-            ),
-            play_url=self.get_url(action="play", content_id=next_product["product_id"]),
-        )
+        next_info = {
+            "current_episode": {
+                "episodeid": product.get("product_id"),
+                "tvshowid": product.get("product_id"),
+                "title": title,
+                "art": {"thumb": product.get("cover_image_url")},
+                "season": 1,
+                "episode": episode_number,
+                "showtitle": title,
+                "plot": description,
+                "playcount": 1,
+                "rating": None,
+                "firstaired": None,
+                "runtime": duration,
+            },
+            "next_episode": {
+                "episodeid": next_product.get("product_id"),
+                "tvshowid": next_product.get("product_id"),
+                "title": next_product.get("synopsis"),
+                "art": {"thumb": next_product.get("cover_image_url")},
+                "season": 1,
+                "episode": next_product.get("number"),
+                "showtitle": next_product.get("synopsis"),
+                "plot": next_product.get("synopsis"),
+                "playcount": 0,
+                "rating": None,
+                "firstaired": None,
+                "runtime": None,
+            },
+            "play_url": self.get_url(
+                action="play", content_id=next_product.get("product_id")
+            )
+        }
 
         kodiutils.upnext_signal(
             sender=common.ADDON_ID,

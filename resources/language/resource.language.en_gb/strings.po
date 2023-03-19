@@ -111,3 +111,11 @@ msgstr ""
 msgctxt "#33104"
 msgid "This video is unavailable in your current account level"
 msgstr ""
+
+msgctxt "#33105"
+msgid "Up Next not found"
+msgstr ""
+
+msgctxt "#33106"
+msgid "Up Next addon is not installed, consider installing it for seamless watching"
+msgstr ""
