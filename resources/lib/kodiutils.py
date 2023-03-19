@@ -61,11 +61,11 @@ def notify(sender, message, data):
     """Send a notification to Kodi using JSON RPC"""
     result = jsonrpc(
         method="JSONRPC.NotifyAll",
-        params=dict(
-            sender=sender,
-            message=message,
-            data=data,
-        ),
+        params= {
+            "sender": sender,
+            "message": message,
+            "data": data,
+        },
     )
     if result.get("result") != "OK":
         LOG.info("Failed to send notification: %s", result.get("error").get("message"))

@@ -4,11 +4,11 @@ from urllib.parse import urlencode
 from urllib.parse import parse_qsl
 import sys
 import logging
+import uuid
 import requests
 import xbmc
 import xbmcgui
 import xbmcplugin
-import uuid
 from bs4 import BeautifulSoup
 import resources.lib.common as common
 from resources.lib.player import ViuPlayer
@@ -657,6 +657,10 @@ class ViuPlugin(object):
                     break
 
         # Send up next signal
+        if (xbmc.getCondVisibility('System.HasAddon(service.upnext)') == 0):
+            kodiutils.notification(common.ADDON.getLocalizedString(33105), common.ADDON.getLocalizedString(33106))
+            return
+
         next_product = self.get_next_episode(episode_number, series)
         LOG.info("next episode: %s", next_product)
 
@@ -668,39 +672,39 @@ class ViuPlugin(object):
         ):
             return
 
-        next_info = dict(
-            current_episode=dict(
-                episodeid=product.get("product_id"),
-                tvshowid=product.get("product_id"),
-                title=title,
-                art={"thumb": product.get("cover_image_url")},
-                season=1,
-                episode=episode_number,
-                showtitle=title,
-                plot=description,
-                playcount=1,
-                rating=None,
-                firstaired=None,
-                runtime=duration,
-            ),
-            next_episode=dict(
-                episodeid=next_product.get("product_id"),
-                tvshowid=next_product.get("product_id"),
-                title=next_product.get("synopsis"),
-                art={"thumb": next_product.get("cover_image_url")},
-                season=1,
-                episode=next_product.get("number"),
-                showtitle=next_product.get("synopsis"),
-                plot=next_product.get("synopsis"),
-                playcount=0,
-                rating=None,
-                firstaired=None,
-                runtime=None,
-            ),
-            play_url=self.get_url(
+        next_info = {
+            "current_episode": {
+                "episodeid": product.get("product_id"),
+                "tvshowid": product.get("product_id"),
+                "title": title,
+                "art": {"thumb": product.get("cover_image_url")},
+                "season": 1,
+                "episode": episode_number,
+                "showtitle": title,
+                "plot": description,
+                "playcount": 1,
+                "rating": None,
+                "firstaired": None,
+                "runtime": duration,
+            },
+            "next_episode": {
+                "episodeid": next_product.get("product_id"),
+                "tvshowid": next_product.get("product_id"),
+                "title": next_product.get("synopsis"),
+                "art": {"thumb": next_product.get("cover_image_url")},
+                "season": 1,
+                "episode": next_product.get("number"),
+                "showtitle": next_product.get("synopsis"),
+                "plot": next_product.get("synopsis"),
+                "playcount": 0,
+                "rating": None,
+                "firstaired": None,
+                "runtime": None,
+            },
+            "play_url": self.get_url(
                 action="play", content_id=next_product.get("product_id")
-            ),
-        )
+            )
+        }
 
         kodiutils.upnext_signal(
             sender=common.ADDON_ID,

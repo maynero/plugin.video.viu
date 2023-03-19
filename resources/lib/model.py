@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 class Product:
     def __init__(
         self,
@@ -51,6 +50,7 @@ class UserStatus:
 
 
 class SiteSetting:
-    def __init__(self, area_id, language_flag_id):
+    def __init__(self, area_id, language_flag_id, language):
         self.area_id = area_id
         self.language_flag_id = language_flag_id
+        self.language = language
