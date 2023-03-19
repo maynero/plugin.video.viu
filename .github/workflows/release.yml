@@ -8,6 +8,8 @@ jobs:
     if: github.event.base_ref == 'refs/heads/master'
     name: Publish release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -31,22 +33,8 @@ jobs:
           echo ::set-output name=body::$description
       - name: Create GitHub Release
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: ncipollo/release-action@v1
         with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
+          artifacts: ../${{ steps.get-zip-filename.outputs.zip-filename }}
           body: ${{ steps.get-body.outputs.body }}
-          draft: false
           prerelease: false
-      - name: Upload zip file
-        id: upload-zip
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_name: ${{ steps.get-zip-filename.outputs.zip-filename }}
-          asset_path: ../${{ steps.get-zip-filename.outputs.zip-filename }}
-          asset_content_type: application/zip
