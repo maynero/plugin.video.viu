@@ -22,7 +22,7 @@ This plugin is not affiliated nor supported by Viu.
  - add-ons for the player.py code: https://github.com/add-ons
 
 ## Releases
-### v0.0.6 (2023-03-30)
+### v0.0.6 (2023-03-20)
 - Viu site changes
 
 ### v0.0.5 (2022-08-25)
