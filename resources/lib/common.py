@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 import time
 import xbmcaddon
 
 ADDON = xbmcaddon.Addon()
 ADDON_ID = ADDON.getAddonInfo("id")
+VIU_TOKEN_URL = f"https://api-gateway-global.viu.com/api/auth/token?v={int(time.time())}"
 VIU_COLLECTION_URL = "https://www.viu.com/ott/{}/index.php?r=category/series-category&platform_flag_label=web&area_id={}&language_flag_id={}&cpreference_id=&category_id={}&length={}&offset={}"
 VIU_PRODUCT_URL = "https://www.viu.com/ott/{}/index.php?area_id={}&language_flag_id={}&r=vod/ajax-detail&platform_flag_label=web&product_id={}&ut=0"
 VIU_SEARCH_URL = "https://www.viu.com/ott/{}/index.php?r=vod/jsonp&area_id={}&language_flag_id={}&cpreference_id="

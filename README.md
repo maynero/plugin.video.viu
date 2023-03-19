@@ -22,6 +22,9 @@ This plugin is not affiliated nor supported by Viu.
  - add-ons for the player.py code: https://github.com/add-ons
 
 ## Releases
+### v0.0.6 (2023-03-30)
+- Viu site changes
+
 ### v0.0.5 (2022-08-25)
 - Fix unsorted video items when some episodes are only available on premium
 
