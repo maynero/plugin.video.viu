@@ -657,7 +657,7 @@ class ViuPlugin(object):
                     break
 
         # Send up next signal
-        if (xbmc.getCondVisibility('System.HasAddon(service.upnext)') == 0):
+        if xbmc.getCondVisibility('System.HasAddon(service.upnext)') == 0:
             kodiutils.notification(common.ADDON.getLocalizedString(33105), common.ADDON.getLocalizedString(33106))
             return
 
