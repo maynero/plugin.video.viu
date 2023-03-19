@@ -32,53 +32,53 @@ test: check test-unit test-service test-run
 check: check-tox check-pylint check-translations
 
 check-tox:
-    @echo -e "$(white)=$(blue) Starting sanity tox test$(reset)"
-    $(PYTHON) -m tox -q -e
+	@echo -e "$(white)=$(blue) Starting sanity tox test$(reset)"
+	$(PYTHON) -m tox -q -e
 
 check-pylint:
-    @echo -e "$(white)=$(blue) Starting sanity pylint test$(reset)"
-    $(PYTHON) -m pylint resources/lib/ tests/
+	@echo -e "$(white)=$(blue) Starting sanity pylint test$(reset)"
+	$(PYTHON) -m pylint resources/lib/ tests/
 
 check-translations:
-    @echo -e "$(white)=$(blue) Starting language test$(reset)"
-    @-$(foreach lang,$(languages), \
-        msgcmp resources/language/resource.language.$(lang)/strings.po resources/language/resource.language.en_gb/strings.po; \
-    )
+	@echo -e "$(white)=$(blue) Starting language test$(reset)"
+	@-$(foreach lang,$(languages), \
+		msgcmp resources/language/resource.language.$(lang)/strings.po resources/language/resource.language.en_gb/strings.po; \
+	)
 
 update-translations:
-    @echo -e "$(white)=$(blue) Updating languages$(reset)"
-    @-$(foreach lang,$(languages), \
-        tests/update_translations.py resources/language/resource.language.$(lang)/strings.po resources/language/resource.language.en_gb/strings.po; \
-    )
+	@echo -e "$(white)=$(blue) Updating languages$(reset)"
+	@-$(foreach lang,$(languages), \
+		tests/update_translations.py resources/language/resource.language.$(lang)/strings.po resources/language/resource.language.en_gb/strings.po; \
+	)
 
 check-addon: clean
-    @echo -e "$(white)=$(blue) Starting sanity addon tests$(reset)"
-    kodi-addon-checker --branch=leia
+	@echo -e "$(white)=$(blue) Starting sanity addon tests$(reset)"
+	kodi-addon-checker --branch=leia
 
 unit: test-unit
 
 test-unit: clean
-    @echo -e "$(white)=$(blue) Starting unit tests$(reset)"
-    $(PYTHON) -m unittest discover
+	@echo -e "$(white)=$(blue) Starting unit tests$(reset)"
+	$(PYTHON) -m unittest discover
 
 build: clean
-    @echo -e "$(white)=$(blue) Building new package$(reset)"
-    @rm -f ../$(zip_name)
-    cd ..; zip -r $(zip_name) $(include_paths) -x $(exclude_files)
-    @echo -e "$(white)=$(blue) Successfully wrote package as: $(white)../$(zip_name)$(reset)"
+	@echo -e "$(white)=$(blue) Building new package$(reset)"
+	@rm -f ../$(zip_name)
+	cd ..; zip -r $(zip_name) $(include_paths) -x $(exclude_files)
+	@echo -e "$(white)=$(blue) Successfully wrote package as: $(white)../$(zip_name)$(reset)"
 
 multizip: clean
-    @-$(foreach abi,$(KODI_PYTHON_ABIS), \
-        echo "cd /addon/requires/import[@addon='xbmc.python']/@version\nset $(abi)\nsave\nbye" | xmllint --shell addon.xml; \
-        matrix=$(findstring $(abi), $(word 1,$(KODI_PYTHON_ABIS))); \
-        if [ $$matrix ]; then version=$(version)+matrix.1; else version=$(version); fi; \
-        echo "cd /addon/@version\nset $$version\nsave\nbye" | xmllint --shell addon.xml; \
-        make build; \
-    )
+	@-$(foreach abi,$(KODI_PYTHON_ABIS), \
+		echo "cd /addon/requires/import[@addon='xbmc.python']/@version\nset $(abi)\nsave\nbye" | xmllint --shell addon.xml; \
+		matrix=$(findstring $(abi), $(word 1,$(KODI_PYTHON_ABIS))); \
+		if [ $$matrix ]; then version=$(version)+matrix.1; else version=$(version); fi; \
+		echo "cd /addon/@version\nset $$version\nsave\nbye" | xmllint --shell addon.xml; \
+		make build; \
+	)
 
 clean:
-    @echo -e "$(white)=$(blue) Cleaning up$(reset)"
-    find . -name '*.py[cod]' -type f -delete
-    find . -name __pycache__ -type d -delete
-    rm -rf .pytest_cache/ .tox/
-    rm -f *.log
+	@echo -e "$(white)=$(blue) Cleaning up$(reset)"
+	find . -name '*.py[cod]' -type f -delete
+	find . -name __pycache__ -type d -delete
+	rm -rf .pytest_cache/ .tox/
+	rm -f *.log
