@@ -22,6 +22,9 @@ This plugin is not affiliated nor supported by Viu.
  - add-ons for the player.py code: https://github.com/add-ons
 
 ## Releases
+### v0.0.7 (2023-04-02)
+- Fix missing stream URL due to API changes
+
 ### v0.0.6 (2023-03-20)
 - Viu site changes
 

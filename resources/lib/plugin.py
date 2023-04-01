@@ -55,15 +55,14 @@ class ViuPlugin(object):
 
     @staticmethod
     def get_stream_url(stream):
-        for url_key in ["url4", "url3", "url2", "url"]:
-            if url_key in stream:
-                resolution_key = settings.get_resolution()
-                if resolution_key in stream.get(url_key):
-                    return stream.get(url_key).get(resolution_key)
+        LOG.info("available streams: %s", stream)
+        parse_stream = stream.get("url4", stream.get("url3", stream.get("url2", stream.get("url"))))
+        resolution_key = settings.get_resolution()
 
-                return stream.get(url_key).get(list(stream.get(url_key).keys())[-1])
+        if parse_stream is not None:
+            return parse_stream.get(resolution_key, parse_stream.get(list(parse_stream.keys())[-1]))
 
-            return ""
+        return ""
 
     @staticmethod
     def get_next_episode(cur_ep_num, series):
@@ -616,7 +615,6 @@ class ViuPlugin(object):
                 self.site_setting.language_flag_id, ccs_product_id
             )
         )
-        LOG.info("available streams: %s", data)
         stream_url = self.get_stream_url(data["data"]["stream"])
 
         if not stream_url:
