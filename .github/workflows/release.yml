@@ -8,6 +8,9 @@ jobs:
     if: github.event.base_ref == 'refs/heads/master'
     name: Publish release
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        repo: ['maynero/repository.kodinewbs']
     permissions:
       contents: write
     steps:
@@ -38,3 +41,10 @@ jobs:
           artifacts: ../${{ steps.get-zip-filename.outputs.zip-filename }}
           body: ${{ steps.get-body.outputs.body }}
           prerelease: false
+      - name: Dispatch
+        uses: peter-evans/repository-dispatch@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ matrix.repo }}
+          event-type: release
+          client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}", "module": "maynero/plugin.video.viu", "tag": "${{ github.ref_name }}"}'
