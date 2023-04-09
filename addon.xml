@@ -19,6 +19,9 @@
         <forum></forum>
         <source>https://github.com/maynero/plugin.video.viu</source>
         <news>
+v0.0.8+matrix.1 (2023-04-10)
+- Add user agent when connecting to Viu APIs
+
 v0.0.7+matrix.1 (2023-04-02)
 - Fix missing stream URL due to API changes
 

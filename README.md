@@ -22,6 +22,9 @@ This plugin is not affiliated nor supported by Viu.
  - add-ons for the player.py code: https://github.com/add-ons
 
 ## Releases
+### v0.0.8 (2023-04-10)
+- Add user agent when connecting to Viu APIs
+
 ### v0.0.7 (2023-04-02)
 - Fix missing stream URL due to API changes
 
