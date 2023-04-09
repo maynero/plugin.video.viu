@@ -44,7 +44,7 @@ jobs:
       - name: Dispatch
         uses: peter-evans/repository-dispatch@v1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT }}
           repository: ${{ matrix.repo }}
           event-type: release
           client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}", "module": "maynero/plugin.video.viu", "tag": "${{ github.ref_name }}"}'
