@@ -270,7 +270,7 @@ class ViuPlugin(object):
         assert response.status_code == 200
         soup = BeautifulSoup(response.text, "html.parser")
 
-        for tag in soup.find("ul", class_="MuiBox-root").find_all("li"):
+        for tag in soup.find("ul", class_="Box-root").find_all("li"):
             for cat in tag.find_all("a", href=True):
                 category_id = "".join(list(filter(str.isdigit, cat["href"])))
 
