@@ -22,6 +22,9 @@ This plugin is not affiliated nor supported by Viu.
  - add-ons for the player.py code: https://github.com/add-ons
 
 ## Releases
+### v0.0.9 (2023-12-20)
+- Fix issue when loading categories due site changes
+
 ### v0.0.8 (2023-04-10)
 - Add user agent when connecting to Viu APIs
 
