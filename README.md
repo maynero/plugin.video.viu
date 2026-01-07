@@ -9,7 +9,7 @@
 This plugin is not affiliated nor supported by Viu.
 
 ## Limitations: 
- - Login only support emails
+ - ~~Login only support emails~~ Viu has implemented reCAPTCHA, logins don't work anymore. You can still watch free content by disabling the login to stop the popup about `Missing recaptcha`
  - Limited artwork
 
 ## Note: 
